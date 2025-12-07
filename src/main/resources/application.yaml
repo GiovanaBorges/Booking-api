@@ -3,4 +3,4 @@ spring:
         name: booking
         
     profiles:
-        active: dev
+        active: prod
