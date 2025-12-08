@@ -1,4 +1,4 @@
-package com.booking.booking.events;
+package com.booking.booking.events.providerEvents;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
