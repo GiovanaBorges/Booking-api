@@ -37,7 +37,7 @@ public class ProviderAvailabilityservices {
     public ProviderAvailabilityResponseDTO saveProviderAvailability(ProviderAvailabilityRequestDTO requestDTO){
         
         Users provider = usersRepository.findById(requestDTO.providerId())
-            .orElseThrow(() -> new ApiException("Provider not found", HttpStatus.NOT_FOUND));
+            .orElseThrow(() -> new ApiException("Provider availability not found", HttpStatus.NOT_FOUND));
 
         ProviderAvailability providerToBeSaved = ProviderAvailability.builder()
             .day_of_week(requestDTO.day_of_week())
@@ -73,7 +73,7 @@ public class ProviderAvailabilityservices {
 
     public ProviderAvailabilityResponseDTO deleteProviderById(Long id){
         ProviderAvailability providerFound = providerRepository.findById(id)
-            .orElseThrow(() -> new ApiException("nenhum provider encontrado", HttpStatus.NOT_FOUND));
+            .orElseThrow(() -> new ApiException("Provider availability not found", HttpStatus.NOT_FOUND));
 
         providerRepository.deleteById(id);
 
@@ -103,7 +103,7 @@ public class ProviderAvailabilityservices {
     public ProviderAvailabilityResponseDTO findProviderById(Long id){
         Optional<ProviderAvailability> providerAvailable = providerRepository.findById(id);
         if(providerAvailable.isEmpty()){
-            throw new ApiException("Esse horário não foi encontrado",HttpStatus.NOT_FOUND);
+            throw new ApiException("Provider availability not found",HttpStatus.NOT_FOUND);
         }
         return new ProviderAvailabilityResponseDTO(
             providerAvailable.get().getId(),
@@ -156,7 +156,7 @@ public class ProviderAvailabilityservices {
         List<ProviderAvailability> resultAllProvidersAvailable = providerRepository.findAll();
 
         if(resultAllProvidersAvailable.isEmpty()){
-            throw new ApiException("Não há nenhum horário cadastrado", HttpStatus.NOT_FOUND);
+            throw new ApiException("Provider availability not found", HttpStatus.NOT_FOUND);
         }
         return resultAllProvidersAvailable.stream()
             .map(provider -> new ProviderAvailabilityResponseDTO(
