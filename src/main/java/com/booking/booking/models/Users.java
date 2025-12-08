@@ -1,11 +1,8 @@
 package com.booking.booking.models;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-import org.antlr.v4.runtime.misc.NotNull;
-
-import com.booking.booking.ENUMS.RolesEnum;
+import com.booking.booking.ENUMS.RolesENUM;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,8 +35,11 @@ public class Users {
     @Column(unique = true)
     private String email;
 
+    @NotBlank
+    private String password;
+
     @Enumerated(EnumType.STRING)
-    private RolesEnum roles;
+    private RolesENUM roles;
     
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
