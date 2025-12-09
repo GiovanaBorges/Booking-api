@@ -18,19 +18,16 @@ public class MessageProducerProvider {
     private static final Logger log = LoggerFactory.getLogger(MessageProducerProvider.class);
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${rabbit.provider.exchange}")
+    @Value("${rabbitmq.provider.exchange}")
     private String providerExchange;
 
-    @Value("${rabbit.provider.exchange}")
-    private String exchange;
-
-    @Value("${rabbit.provider.routing.created}")
+    @Value("${rabbitmq.provider.routing.created}")
     private String createdRK;
 
-    @Value("${rabbit.provider.routing.updated}")
+    @Value("${rabbitmq.provider.routing.updated}")
     private String updatedRK;
 
-    @Value("${rabbit.provider.routing.deleted}")
+    @Value("${rabbitmq.provider.routing.deleted}")
     private String deletedRK;
 
     public void sendProviderCreateEvent(ProviderAvailabilityCreatedEvent event){
