@@ -1,0 +1,32 @@
+name: Setup .env from .env.example
+
+description: Carrega o .env.example e substitui variáveis sensíveis vindas do GitHub Secrets.
+
+inputs:
+  environment:
+    required: true
+    description: "Ambiente do GitHub (ex: dev, prod)"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Copiar .env.example para .env
+      shell: bash
+      run: |
+        echo "Criando .env baseado no .env.example..."
+        cp .env.example .env
+
+    - name: Inserir variáveis sensíveis no .env
+      shell: bash
+      run: |
+        echo "" >> .env
+        echo "# Secrets do CI" >> .env
+        echo "RABBITMQ_USERNAME=${{ secrets.RABBITMQ_USERNAME }}" >> .env
+        echo "RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}" >> .env
+
+    - name: Mostrar .env (sanitizado)
+      shell: bash
+      run: |
+        echo "Conteúdo do .env no CI:"
+        sed -e 's/\(RABBITMQ_PASSWORD=\).*/\1****/' \
+            -e 's/\(RABBITMQ_USERNAME=\).*/\1****/' .env
