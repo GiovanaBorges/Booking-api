@@ -19,118 +19,167 @@ import org.springframework.amqp.core.*;
 public class RabbitMQConfig {
     private static final Logger log = LoggerFactory.getLogger(RabbitMQConfig.class);
 
-    // BOOKING
+   // BOOKING
     @Value("${rabbitmq.booking.exchange}")        private String bookingExchange;
-    @Value("${rabbitmq.booking.queue}")           private String bookingQueue;
-    @Value("${rabbitmq.booking.routing-key}")     private String bookingRoutingKey;
-    @Value("${rabbitmq.booking.dlq}")             private String bookingDlq;
+    @Value("${rabbitmq.booking.routing.created}") private String bookingRoutingKeyCreated;
+    @Value("${rabbitmq.booking.routing.updated}") private String bookingRoutingKeyUpdated;
+    @Value("${rabbitmq.booking.routing.deleted}") private String bookingRoutingKeyDeleted;
+    @Value("${rabbitmq.booking.queue.created}")   private String bookingCreatedQueue;
+    @Value("${rabbitmq.booking.queue.updated}")   private String bookingUpdatedQueue;
+    @Value("${rabbitmq.booking.queue.deleted}")   private String bookingDeletedQueue;
+    @Value("${rabbitmq.booking.dlq.created}")     private String bookingDlqCreated;
+    @Value("${rabbitmq.booking.dlq.updated}")     private String bookingDlqUpdated;
+    @Value("${rabbitmq.booking.dlq.deleted}")     private String bookingDlqDeleted;
 
     // PROVIDER
     @Value("${rabbitmq.provider.exchange}")       private String providerExchange;
-    @Value("${rabbitmq.provider.queue}")          private String providerQueue;
-    @Value("${rabbitmq.provider.routing-key}")    private String providerRoutingKey;
-    @Value("${rabbitmq.provider.dlq}")            private String providerDlq;
+    @Value("${rabbitmq.provider.routing.created}")private String providerRoutingKeyCreated;
+    @Value("${rabbitmq.provider.routing.updated}")private String providerRoutingKeyUpdated;
+    @Value("${rabbitmq.provider.routing.deleted}")private String providerRoutingKeyDeleted;
+    @Value("${rabbitmq.provider.queue.created}")  private String providerCreatedQueue;
+    @Value("${rabbitmq.provider.queue.updated}")  private String providerUpdatedQueue;
+    @Value("${rabbitmq.provider.queue.deleted}")  private String providerDeletedQueue;
+    @Value("${rabbitmq.provider.dlq.created}")    private String providerDlqCreate;
+    @Value("${rabbitmq.provider.dlq.updated}")    private String providerDlqUpdated;
+    @Value("${rabbitmq.provider.dlq.deleted}")    private String providerDlqDeleted;
 
     // USERS
-    @Value("${rabbitmq.users.exchange}")           private String userExchange;
-    @Value("${rabbitmq.users.queue}")              private String userQueue;
-    @Value("${rabbitmq.users.routing-key}")        private String userRoutingKey;
-    @Value("${rabbitmq.users.dlq}")                private String userDlq;
+    @Value("${rabbitmq.users.exchange}")          private String userExchange;
+    @Value("${rabbitmq.users.routing.created}")   private String userRoutingKeyCreated;
+    @Value("${rabbitmq.users.routing.updated}")   private String userRoutingKeyUpdated;
+    @Value("${rabbitmq.users.routing.deleted}")   private String userRoutingKeyDeleted;
+    @Value("${rabbitmq.users.queue.created}")     private String userCreatedQueue;
+    @Value("${rabbitmq.users.queue.updated}")     private String userUpdatedQueue;
+    @Value("${rabbitmq.users.queue.deleted}")     private String userDeletedQueue;
+    @Value("${rabbitmq.users.dlq.created}")       private String userDlqCreate;
+    @Value("${rabbitmq.users.dlq.updated}")       private String userDlqUpdated;
+    @Value("${rabbitmq.users.dlq.deleted}")       private String userDlqDeleted;
 
-     // ----------------------------------------
+    // ----------------------------------------
     // EXCHANGES
     // ----------------------------------------
 
-    @Bean
-    public TopicExchange bookingExchange() { 
-        log.info("Registrando exchange booking: {}", bookingExchange);
-        return new TopicExchange(bookingExchange); 
+     @Bean
+    public TopicExchange bookingTopic() {
+        return new TopicExchange(bookingExchange);
     }
 
     @Bean
-    public TopicExchange providerExchange() { 
-        log.info("Registrando exchange provider: {}", providerExchange);
-        return new TopicExchange(providerExchange); 
+    public TopicExchange providerTopic() {
+        return new TopicExchange(providerExchange);
     }
 
     @Bean
-    public TopicExchange userExchange() { 
-        log.info("Registrando exchange user: {}", userExchange);
-        return new TopicExchange(userExchange); 
+    public TopicExchange userTopic() {
+        return new TopicExchange(userExchange);
     }
+
 
     // ----------------------------------------
     // QUEUES + DLQs
     // ----------------------------------------
 
-    @Bean
-    public Queue bookingQueue() {
-        log.info("Registrando fila booking: {}", bookingQueue);
-        return QueueBuilder.durable(bookingQueue)
+      private Queue buildQueue(String queue, String dlq) {
+        return QueueBuilder.durable(queue)
                 .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", bookingDlq)
+                .withArgument("x-dead-letter-routing-key", dlq)
                 .build();
     }
 
-    @Bean
-    public Queue bookingDlq() {
-        log.info("Registrando DLQ of booking: {}", bookingDlq);
-        return QueueBuilder.durable(bookingDlq).build();
-    }
+    @Bean public Queue bookingCreatedQueue() { return buildQueue(bookingCreatedQueue, bookingDlqCreated); }
+    @Bean public Queue bookingUpdatedQueue() { return buildQueue(bookingUpdatedQueue, bookingDlqUpdated); }
+    @Bean public Queue bookingDeletedQueue() { return buildQueue(bookingDeletedQueue, bookingDlqDeleted); }
+
+    // ----------------------------------------
+    // DQL BOOKING
+    // ----------------------------------------
+
+    @Bean public Queue bookingDlqQueueCreated()     { return QueueBuilder.durable(bookingDlqCreated).build(); }
+    @Bean public Queue bookingDlqQueueUpdated()     { return QueueBuilder.durable(bookingDlqUpdated).build(); }
+    @Bean public Queue bookingDlqQueueDeleted()     { return QueueBuilder.durable(bookingDlqDeleted).build(); }
+
+    @Bean public Queue providerCreatedQueue() { return buildQueue(providerCreatedQueue, providerDlqCreate); }
+    @Bean public Queue providerUpdatedQueue() { return buildQueue(providerUpdatedQueue, providerDlqUpdated); }
+    @Bean public Queue providerDeletedQueue() { return buildQueue(providerDeletedQueue, providerDlqDeleted); }
+
+    // ----------------------------------------
+    // DQL PROVIDER
+    // ----------------------------------------
+
+    @Bean public Queue providerDlqQueueCreated()     { return QueueBuilder.durable(providerDlqCreate).build(); }
+    @Bean public Queue providerDlqQueueUpdated()     { return QueueBuilder.durable(providerDlqUpdated).build(); }
+    @Bean public Queue providerDlqQueueDeleted()     { return QueueBuilder.durable(providerDlqDeleted).build(); }
+
+    @Bean public Queue userCreatedQueue() { return buildQueue(userCreatedQueue, userDlqCreate); }
+    @Bean public Queue userUpdatedQueue() { return buildQueue(userUpdatedQueue, userDlqUpdated); }
+    @Bean public Queue userDeletedQueue() { return buildQueue(userDeletedQueue, userDlqDeleted); }
+
+    // ----------------------------------------
+    // DQL USERS
+    // ----------------------------------------
 
 
-    @Bean
-    public Queue providerQueue() {
-        log.info("Registrando fila provider: {}", providerQueue);
-        return QueueBuilder.durable(providerQueue)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", providerDlq)
-                .build();
-    }
-
-    @Bean
-    public Queue providerDlq() {
-        log.info("Registrando DLQ of provider: {}", providerDlq);
-        return QueueBuilder.durable(providerDlq).build();
-    }
+    @Bean public Queue userDlqQueueCreated()     { return QueueBuilder.durable(userDlqCreate).build(); }
+    @Bean public Queue userDlqQueueUpdated()     { return QueueBuilder.durable(userDlqUpdated).build(); }
+    @Bean public Queue userDlqQueueDeleted()     { return QueueBuilder.durable(userDlqDeleted).build(); }
 
 
-    @Bean
-    public Queue userQueue() {
-        log.info("Registrando fila of user: {}", userQueue);
-        return QueueBuilder.durable(userQueue)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", userDlq)
-                .build();
-    }
-
-    @Bean
-    public Queue userDlq() {
-        log.info("Registrando DLQ of user: {}", userDlq);
-        return QueueBuilder.durable(userDlq).build();
-    }
-
-
-       // ----------------------------------------
+    // ----------------------------------------
     // BINDINGS
     // ----------------------------------------
 
     @Bean
-    public Binding bookingBinding(Queue bookingQueue, TopicExchange bookingExchange) {
-        log.info("Criando binding entre {} e {} com routingKey={}", bookingExchange, bookingQueue, bookingRoutingKey);
-        return BindingBuilder.bind(bookingQueue).to(bookingExchange).with(bookingRoutingKey);
+    public Binding bookingBindingCreate() {
+        return BindingBuilder.bind(bookingCreatedQueue())
+                .to(bookingTopic()).with(bookingRoutingKeyCreated);
     }
 
     @Bean
-    public Binding providerBinding(Queue providerQueue, TopicExchange providerExchange) {
-        log.info("Criando binding entre {} e {} com routingKey={}", providerExchange, providerQueue, providerRoutingKey);
-        return BindingBuilder.bind(providerQueue).to(providerExchange).with(providerRoutingKey);
+    public Binding bookingBindingUpdate() {
+        return BindingBuilder.bind(bookingUpdatedQueue())
+                .to(bookingTopic()).with(bookingRoutingKeyUpdated);
     }
 
     @Bean
-    public Binding userBinding(Queue userQueue, TopicExchange userExchange) {
-        log.info("Criando binding entre {} e {} com routingKey={}", userExchange, userQueue, userRoutingKey);
-        return BindingBuilder.bind(userQueue).to(userExchange).with(userRoutingKey);
+    public Binding bookingBindingDelete() {
+        return BindingBuilder.bind(bookingDeletedQueue())
+                .to(bookingTopic()).with(bookingRoutingKeyDeleted);
+    }
+
+    @Bean
+    public Binding providerBindingCreate() {
+        return BindingBuilder.bind(providerCreatedQueue())
+                .to(providerTopic()).with(providerRoutingKeyCreated);
+    }
+
+    @Bean
+    public Binding providerBindingUpdate() {
+        return BindingBuilder.bind(providerUpdatedQueue())
+                .to(providerTopic()).with(providerRoutingKeyUpdated);
+    }
+
+    @Bean
+    public Binding providerBindingDelete() {
+        return BindingBuilder.bind(providerDeletedQueue())
+                .to(providerTopic()).with(providerRoutingKeyDeleted);
+    }
+
+    @Bean
+    public Binding userBindingCreate() {
+        return BindingBuilder.bind(userCreatedQueue())
+                .to(userTopic()).with(userRoutingKeyCreated);
+    }
+
+    @Bean
+    public Binding userBindingUpdate() {
+        return BindingBuilder.bind(userUpdatedQueue())
+                .to(userTopic()).with(userRoutingKeyUpdated);
+    }
+
+    @Bean
+    public Binding userBindingDelete() {
+        return BindingBuilder.bind(userDeletedQueue())
+                .to(userTopic()).with(userRoutingKeyDeleted);
     }
 
     // ==============================
@@ -182,8 +231,6 @@ public class RabbitMQConfig {
                                 log.error("[DLQ] Mensagem movida após falhas permanentes. Causa: {}", cause.getMessage()))
                         .build()
         );
-
-        log.info("Listener configurado com retry automático e DLQ para as filas {}", userQueue,bookingQueue,providerQueue);
         return factory;
     }
 }
