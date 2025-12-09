@@ -1,0 +1,29 @@
+name: "Setup Java + Maven"
+description: "Instala JDK, configura cache do Maven e valida ambiente"
+
+inputs:
+  java-version:
+    required: true
+    description: "Versão do Java"
+  distribution:
+    required: false
+    default: "temurin"
+    description: "Distribuição JDK"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.distribution }}
+        cache: maven
+
+    - name: Exibir versão do Java
+      shell: bash
+      run: java -version
+
+    - name: Validar Maven
+      shell: bash
+      run: mvn -v
