@@ -1,15 +1,16 @@
 package com.booking.booking.models;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Date;
 
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.booking.booking.ENUMS.StatusENUM;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -26,6 +27,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 @Builder
 public class Bookings {
     @Id
@@ -47,9 +49,11 @@ public class Bookings {
     @Enumerated(EnumType.STRING)
     private StatusENUM status;
 
+    @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
+    
+    @LastModifiedDate
     private LocalDateTime updatedAt = LocalDateTime.now();
 
 }
