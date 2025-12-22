@@ -1,11 +1,16 @@
 package com.booking.booking.services;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -32,13 +37,47 @@ public class BookingsServices {
     @Autowired
     private UsersRepository usersRepository;
 
-    public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO){
+    @Autowired
+    private LockService lockService;
 
-        Optional<Bookings> conflict = bookingsRepository.findConflict(
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    
+    @CacheEvict(value = "bookings", allEntries = true)
+    public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO,String idempotencyKey){
+
+        String idempotencyRedisKey = "idempotency:" +idempotencyKey;
+
+        String existing = redisTemplate.opsForValue().get(idempotencyRedisKey);
+        if(existing != null){
+            throw new ApiException("IDEMPOTENCY REPLAY", HttpStatus.CONFLICT);
+        }
+
+        String lockKey = String.format(
+            "lock:booking:%d:%s:%s",
             requestDTO.providerId(),
             requestDTO.startsTs(),
             requestDTO.endTs()
         );
+
+        boolean locked = lockService.acquireLock(lockKey, Duration.ofSeconds(10));
+        if(!locked){
+            throw new ApiException("LOCK NOT ACQUIRED", HttpStatus.LOCKED);
+        }
+        
+        try{
+            Optional<Bookings> conflict = bookingsRepository.findConflict(
+                requestDTO.providerId(), 
+                requestDTO.startsTs(),
+                requestDTO.endTs()
+            );
+
+            if(conflict.isPresent()){
+                throw new ApiException("THIS TIME SLOT IS ALREADY BOOKED",
+                 HttpStatus.CONFLICT);
+            }
+        
 
         if(conflict.isPresent()){
             throw new ApiException("THIS TIME SLOT IS ALREADY BOOKED", HttpStatus.CONFLICT);
@@ -59,6 +98,12 @@ public class BookingsServices {
             .build();
         
         Bookings bookingSaved = bookingsRepository.save(booking);
+
+        redisTemplate.opsForValue()
+            .set(idempotencyRedisKey, 
+                bookingSaved.getId().toString(),
+                Duration.ofHours(24)
+            );
 
         BookingCreatedEvent bookingCreatedEvent = BookingCreatedEvent.builder()
             .id(bookingSaved.getId())
@@ -81,8 +126,13 @@ public class BookingsServices {
             bookingSaved.getCreatedAt(),
             bookingSaved.getUpdatedAt()
         );
+
+    } finally{
+        lockService.releaseLock(lockKey);
+    }
     }
 
+    @Cacheable(value = "bookings", key = "#id")
     public BookingsResponseDTO getBookingById(Long id){
         Optional<Bookings> bookingsFound = bookingsRepository.findById(id);
         if(bookingsFound.isEmpty()){
@@ -101,6 +151,8 @@ public class BookingsServices {
         );
     }
 
+    
+    @CacheEvict(value = "bookings", allEntries = true)
     public BookingsResponseDTO deleteBooking(Long id){
         Optional<Bookings> bookingsFound = bookingsRepository.findById(id);
         if(bookingsFound.isEmpty()){
@@ -133,51 +185,50 @@ public class BookingsServices {
     }
 
     public BookingsResponseDTO updateBooking(Long id,BookingsRequestDTO bookingsRequestDTO){
-        if(bookingsRepository.findById(id).isEmpty()){
-            throw new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND);
-        }
+        
+        Bookings booking = bookingsRepository.findById(id)
+        .orElseThrow(() -> new ApiException(
+            "BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND));
 
         Users provider = usersRepository.findById(bookingsRequestDTO.providerId())
             .orElseThrow(() -> new ApiException("PROVIDER NOT FOUND",HttpStatus.NOT_FOUND));
 
         Users customer = usersRepository.findById(bookingsRequestDTO.customerId())
             .orElseThrow(() -> new ApiException("CUSTOMER NOT FOUND", HttpStatus.NOT_FOUND));
-        
-        Optional<Bookings> bookingFound = bookingsRepository.findById(id);
 
-        Bookings booking = Bookings.builder()
-            .customer(customer)
-            .status(bookingFound.get().getStatus())
-            .provider(provider)
-            .endTs(bookingFound.get().getEndTs())
-            .startsTs(bookingFound.get().getStartsTs())
-            .build();
+        booking.setProvider(provider);
+        booking.setCustomer(customer);
+        booking.setStartsTs(bookingsRequestDTO.startsTs());
+        booking.setEndTs(bookingsRequestDTO.endTs());
+        booking.setStatus(bookingsRequestDTO.status());
 
-        Bookings bookingsUpdated = bookingsRepository.save(booking);
+        Bookings saved = bookingsRepository.save(booking);
 
-        BookingUpdatedEvent bookingUpdatedEvent = BookingUpdatedEvent.builder()
-            .id(bookingsUpdated.getId())
-            .customerId(bookingsUpdated.getCustomer().getId())
-            .endTs(bookingsUpdated.getEndTs())
-            .startsTs(bookingsUpdated.getStartsTs())
-            .providerId(bookingsUpdated.getProvider().getId())
+         BookingUpdatedEvent event = BookingUpdatedEvent.builder()
+            .id(saved.getId())
+            .providerId(saved.getProvider().getId())
+            .customerId(saved.getCustomer().getId())
+            .startsTs(saved.getStartsTs())
+            .endTs(saved.getEndTs())
             .eventTs(LocalDateTime.now())
             .build();
 
-        messageProducerBookings.sendBookingUpdateEvent(bookingUpdatedEvent);
+
+        messageProducerBookings.sendBookingUpdateEvent(event);
 
         return new BookingsResponseDTO(
-            bookingsUpdated.getId(),
-            bookingsUpdated.getProvider().getId(),
-            bookingsUpdated.getCustomer().getId(),
-            bookingsUpdated.getStartsTs(),
-            bookingsUpdated.getEndTs(),
-            bookingsUpdated.getStatus(),
-            bookingsUpdated.getCreatedAt(),
-            bookingsUpdated.getUpdatedAt()
+            saved.getId(),
+            saved.getProvider().getId(),
+            saved.getCustomer().getId(),
+            saved.getStartsTs(),
+            saved.getEndTs(),
+            saved.getStatus(),
+            saved.getCreatedAt(),
+            saved.getUpdatedAt()
         );
     }
 
+    @Cacheable(value = "bookings", key = "'all'")
     public List<BookingsResponseDTO> getAllBookings(){
         List<Bookings> bookingsFound = bookingsRepository.findAll();
         if(bookingsFound.isEmpty()){
