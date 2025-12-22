@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,6 +23,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 
 import com.booking.booking.DTO.BookingsRequestDTO;
@@ -51,6 +54,12 @@ public class BookingsTest {
     @InjectMocks
     private BookingsServices service;
 
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private LockService lockService;
+
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
@@ -64,6 +73,7 @@ public class BookingsTest {
             .name("user1")
             .password("1234")
             .roles(RolesENUM.PROVIDER)
+            .createdAt(LocalDateTime.now())
             .build();
 
         Users customer = Users.builder()
@@ -88,6 +98,16 @@ public class BookingsTest {
             return b;
         });
 
+        when(Userrepository.findById(1L))
+            .thenReturn(Optional.of(provider));
+
+        when(Userrepository.findById(2L))
+            .thenReturn(Optional.of(customer));
+
+        when(redisTemplate.opsForValue()).thenReturn(mock(ValueOperations.class));
+        when(lockService.acquireLock(any(), any())).thenReturn(true);
+        doNothing().when(lockService).releaseLock(any());
+
         BookingsResponseDTO responseDTO = service.saveBooking(
             new BookingsRequestDTO(
                 booking.getId(),
@@ -95,7 +115,7 @@ public class BookingsTest {
                 booking.getStartsTs(),
                 booking.getEndTs(),
                 booking.getStatus()
-            )
+            ),"idem-key-123"
         );
 
         assertAll(
@@ -265,8 +285,6 @@ public class BookingsTest {
             .startsTs(LocalDateTime.now())
             .build();
 
-
-
         BookingsRequestDTO requestDTO = new BookingsRequestDTO(
                booking.getProvider().getId(),
                booking.getCustomer().getId(),
@@ -274,6 +292,12 @@ public class BookingsTest {
                booking.getEndTs(),
                booking.getStatus()
         );
+
+        when(Userrepository.findById(1L))
+            .thenReturn(Optional.of(provider));
+
+        when(Userrepository.findById(2L))
+            .thenReturn(Optional.of(customer));
 
         when(repository.findById(1L)).thenReturn(Optional.of(booking));
         when(repository.save(any(Bookings.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -287,8 +311,8 @@ public class BookingsTest {
             () -> assertEquals(booking.getStartsTs(), responseDTO.startsTs()),
             () -> assertEquals(booking.getEndTs(), responseDTO.endTs()),
             () -> assertEquals(booking.getStatus(), responseDTO.status()),
-            () -> assertEquals(booking.getCustomer(), responseDTO.customer()),
-            () -> assertEquals(booking.getProvider(), responseDTO.provider())
+            () -> assertEquals(booking.getCustomer().getId(), responseDTO.customer()),
+            () -> assertEquals(booking.getProvider().getId(), responseDTO.provider())
         );
 
         // repository interactions
