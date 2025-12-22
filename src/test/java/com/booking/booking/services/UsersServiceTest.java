@@ -58,7 +58,6 @@ public class UsersServiceTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -73,7 +72,6 @@ public class UsersServiceTest {
             new UserRequestDTO(
                 user.getName(),
                 user.getEmail(),
-                user.getPassword(),
                 user.getRoles()
             )
         );
@@ -82,7 +80,6 @@ public class UsersServiceTest {
             () -> assertEquals(user.getId(), responseDTO.id()),
             () -> assertEquals(user.getEmail(), responseDTO.email()),
             () -> assertEquals(user.getName(), responseDTO.name()),
-            () -> assertEquals(user.getPassword(), responseDTO.password()),
             () -> assertEquals(user.getRoles(), responseDTO.roles())
         );
 
@@ -99,7 +96,6 @@ public class UsersServiceTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -113,7 +109,6 @@ public class UsersServiceTest {
             () -> assertEquals(user.getId(), responseDTO.id()),
             () -> assertEquals(user.getEmail(), responseDTO.email()),
             () -> assertEquals(user.getName(), responseDTO.name()),
-            () -> assertEquals(user.getPassword(), responseDTO.password()),
             () -> assertEquals(user.getRoles(), responseDTO.roles())
         );
     }
@@ -137,7 +132,6 @@ public class UsersServiceTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -152,7 +146,6 @@ public class UsersServiceTest {
             () -> assertEquals(user.getId(), responseDTO.id()),
             () -> assertEquals(user.getEmail(), responseDTO.email()),
             () -> assertEquals(user.getName(), responseDTO.name()),
-            () -> assertEquals(user.getPassword(), responseDTO.password()),
             () -> assertEquals(user.getRoles(), responseDTO.roles())
         );
 
@@ -181,7 +174,6 @@ public class UsersServiceTest {
                 .id(10L)
                 .email("provider@test.com")
                 .name("Provider")
-                .password("1234")
                 .roles(RolesENUM.PROVIDER)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -190,7 +182,6 @@ public class UsersServiceTest {
          UserRequestDTO requestDTO = new UserRequestDTO(
                 user.getName(),
                 user.getEmail(),
-                user.getPassword(),
                 user.getRoles()
             );
 
@@ -205,7 +196,6 @@ public class UsersServiceTest {
             () -> assertEquals(user.getId(), responseDTO.id()),
             () -> assertEquals(user.getEmail(), responseDTO.email()),
             () -> assertEquals(user.getName(), responseDTO.name()),
-            () -> assertEquals(user.getPassword(), responseDTO.password()),
             () -> assertEquals(user.getRoles(), responseDTO.roles())
         );
 
@@ -225,7 +215,6 @@ public class UsersServiceTest {
         UserRequestDTO request = new UserRequestDTO(
                 "user",
                 "email@email",
-                "1234",
                 RolesENUM.CLIENT
         );
 
@@ -243,7 +232,6 @@ public class UsersServiceTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .build();
 
@@ -251,7 +239,6 @@ public class UsersServiceTest {
                 .id(10L)
                 .email("provider@test.com")
                 .name("Provider")
-                .password("1234")
                 .roles(RolesENUM.CLIENT)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -263,7 +250,6 @@ public class UsersServiceTest {
             () -> assertEquals(user.getId(), responseDTO.get(0).id()),
             () -> assertEquals(user.getEmail(), responseDTO.get(0).email()),
             () -> assertEquals(user.getName(), responseDTO.get(0).name()),
-            () -> assertEquals(user.getPassword(), responseDTO.get(0).password()),
             () -> assertEquals(user.getRoles(), responseDTO.get(0).roles())
         );
     }
