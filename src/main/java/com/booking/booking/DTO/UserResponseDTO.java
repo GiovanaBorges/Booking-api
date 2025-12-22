@@ -8,7 +8,6 @@ public record UserResponseDTO(
     Long id,
     String name,
     String email,
-    String password,
     RolesENUM roles,
     LocalDateTime createdAt
 ){}
