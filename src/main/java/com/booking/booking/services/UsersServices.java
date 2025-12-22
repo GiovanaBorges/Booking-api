@@ -36,8 +36,7 @@ public class UsersServices {
         Users user = Users.builder()
             .name(requestDTO.name())
             .email(requestDTO.email())
-            .roles(requestDTO.roles())
-            .password(requestDTO.password())
+            .roles(requestDTO.roles())  
             .createdAt(LocalDateTime.now())
             .build();
         
@@ -47,7 +46,6 @@ public class UsersServices {
             .id(userSaved.getId())
             .email(userSaved.getEmail())
             .name(userSaved.getName())
-            .password(userSaved.getPassword())
             .roles(userSaved.getRoles().toString())
             .eventTs(LocalDateTime.now())
             .build();
@@ -59,7 +57,6 @@ public class UsersServices {
             userSaved.getId(),
             userSaved.getName(),
             userSaved.getEmail(),
-            userSaved.getPassword(),
             userSaved.getRoles(),
             userSaved.getCreatedAt()
         );
@@ -77,7 +74,6 @@ public class UsersServices {
             .id(userFound.get().getId())
             .name(userFound.get().getName())
             .email(userFound.get().getEmail())
-            .password(userFound.get().getPassword())
             .roles(userFound.get().getRoles().toString())
             .createdAt(userFound.get().getCreatedAt())
             .build();
@@ -89,7 +85,6 @@ public class UsersServices {
         userFound.get().getId(),
         userFound.get().getName(),
         userFound.get().getEmail(),
-        userFound.get().getPassword(),
         userFound.get().getRoles(),
         userFound.get().getCreatedAt());
     }
@@ -101,7 +96,6 @@ public class UsersServices {
 
         userFound.setName(userRequestDTO.name());
         userFound.setEmail(userRequestDTO.email());
-        userFound.setPassword(userRequestDTO.password());
         userFound.setRoles(userRequestDTO.roles());
         
         Users userUpdated = usersRepository.save(userFound);
@@ -110,7 +104,6 @@ public class UsersServices {
             .id(userUpdated.getId())
             .name(userUpdated.getName())
             .email(userUpdated.getEmail())
-            .password(userUpdated.getPassword())
             .roles(userUpdated.getRoles().toString())
             .createdAt(LocalDateTime.now())
             .build();
@@ -121,7 +114,6 @@ public class UsersServices {
             userUpdated.getId(),
             userUpdated.getName(),
             userUpdated.getEmail(),
-            userUpdated.getPassword(),
             userUpdated.getRoles(),
             userUpdated.getCreatedAt()
         );
@@ -137,7 +129,6 @@ public class UsersServices {
             userFound.get().getId(),
             userFound.get().getName(),
             userFound.get().getEmail(),
-            userFound.get().getPassword(),
             userFound.get().getRoles(),
             userFound.get().getCreatedAt()
         );
@@ -155,7 +146,6 @@ public class UsersServices {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getPassword(),
                 user.getRoles(),
                 user.getCreatedAt()
             )).collect(Collectors.toList());
