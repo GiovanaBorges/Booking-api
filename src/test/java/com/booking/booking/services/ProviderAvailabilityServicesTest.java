@@ -62,7 +62,6 @@ public class ProviderAvailabilityServicesTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .build();
 
@@ -112,7 +111,6 @@ public class ProviderAvailabilityServicesTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .build();
 
@@ -156,7 +154,6 @@ public class ProviderAvailabilityServicesTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .build();
 
@@ -207,7 +204,6 @@ public class ProviderAvailabilityServicesTest {
                 .id(10L)
                 .email("provider@test.com")
                 .name("Provider")
-                .password("1234")
                 .roles(RolesENUM.PROVIDER)
                 .build();
 
@@ -274,7 +270,6 @@ public class ProviderAvailabilityServicesTest {
             .id(1L)
             .email("email@email.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .build();
 
