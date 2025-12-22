@@ -71,7 +71,6 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -80,8 +79,8 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
-            .password("1234")
             .roles(RolesENUM.CLIENT)
+            .createdAt(LocalDateTime.now())
             .build();
 
         Bookings booking = Bookings.builder()
@@ -110,11 +109,11 @@ public class BookingsTest {
 
         BookingsResponseDTO responseDTO = service.saveBooking(
             new BookingsRequestDTO(
-                booking.getId(),
-                booking.getProvider().getId(),
-                booking.getStartsTs(),
-                booking.getEndTs(),
-                booking.getStatus()
+               booking.getProvider().getId(),
+               booking.getCustomer().getId(),
+               booking.getStartsTs(),
+               booking.getEndTs(),
+               booking.getStatus()
             ),"idem-key-123"
         );
 
@@ -123,8 +122,8 @@ public class BookingsTest {
             () -> assertEquals(booking.getStartsTs(), responseDTO.startsTs()),
             () -> assertEquals(booking.getEndTs(), responseDTO.endTs()),
             () -> assertEquals(booking.getStatus(), responseDTO.status()),
-            () -> assertEquals(booking.getCustomer(), responseDTO.customer()),
-            () -> assertEquals(booking.getProvider(), responseDTO.provider())
+            () -> assertEquals(booking.getCustomer().getId(), responseDTO.customer()),
+            () -> assertEquals(booking.getProvider().getId(), responseDTO.provider())
         );
 
         // ================
@@ -140,7 +139,6 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -149,7 +147,6 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
-            .password("1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -197,7 +194,6 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -206,7 +202,6 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
-            .password("1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -262,7 +257,6 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -271,7 +265,6 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
-            .password("1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -332,7 +325,6 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -341,7 +333,6 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
-            .password("1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -378,7 +369,6 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
-            .password("1234")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -387,7 +377,6 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
-            .password("1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
