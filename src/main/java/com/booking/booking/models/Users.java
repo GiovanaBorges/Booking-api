@@ -40,9 +40,6 @@ public class Users {
     @Column(unique = true)
     private String email;
 
-    @NotBlank
-    private String password;
-
     @Enumerated(EnumType.STRING)
     private RolesENUM roles;
     
