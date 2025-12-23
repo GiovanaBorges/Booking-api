@@ -71,6 +71,7 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
+            .keycloakId("kc-test-123")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -79,6 +80,7 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
+            .keycloakId("kc-test-124")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -139,6 +141,7 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
+            .keycloakId("kc-test-123")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -147,6 +150,7 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
+            .keycloakId("kc-test-1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -194,6 +198,7 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
+            .keycloakId("kc-test-123")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -202,6 +207,7 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
+            .keycloakId("kc-test-1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -257,6 +263,7 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
+            .keycloakId("kc-test-123")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -265,6 +272,7 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
+            .keycloakId("kc-test-1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -325,6 +333,7 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
+            .keycloakId("kc-test-123")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -333,6 +342,7 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
+            .keycloakId("kc-test-1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
@@ -369,6 +379,7 @@ public class BookingsTest {
             .id(1L)
             .email("email@provider.com")
             .name("user1")
+            .keycloakId("kc-test-123")
             .roles(RolesENUM.PROVIDER)
             .createdAt(LocalDateTime.now())
             .build();
@@ -377,6 +388,7 @@ public class BookingsTest {
             .id(2L)
             .email("email@customer.com")
             .name("user2")
+            .keycloakId("kc-test-1234")
             .roles(RolesENUM.CLIENT)
             .createdAt(LocalDateTime.now())
             .build();
