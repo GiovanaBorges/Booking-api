@@ -50,7 +50,7 @@ rabbitmq:
       updated: users.updated.dlq
       deleted: users.deleted.dlq
 
-  booking:
+  bookings:
     exchange: booking-exchange
     routing:
       created: booking.created
