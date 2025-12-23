@@ -1,23 +1,17 @@
 package com.booking.booking.services;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
-import org.springframework.amqp.core.Queue;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import com.booking.booking.DTO.UserRequestDTO;
 import com.booking.booking.DTO.UserResponseDTO;
+import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.events.usersEvents.UsersCreatedEvent;
-import com.booking.booking.events.usersEvents.UsersDeletedEvent;
-import com.booking.booking.events.usersEvents.UsersUpdatedEvent;
-import com.booking.booking.exceptions.ApiException;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.UsersRepository;
+import com.booking.booking.security.JwtRoleExtractor;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerUsers;
 
 @Service
@@ -29,126 +23,63 @@ public class UsersServices {
     @Autowired
     private MessageProducerUsers messageProducerUsers;
 
-    public UserResponseDTO saveUser(UserRequestDTO requestDTO){
-        usersRepository.findByEmail(requestDTO.email()).ifPresent(u ->{
-            throw new ApiException("Email already in use",HttpStatus.CONFLICT);
-        });
-        Users user = Users.builder()
-            .name(requestDTO.name())
-            .email(requestDTO.email())
-            .roles(requestDTO.roles())  
-            .createdAt(LocalDateTime.now())
-            .build();
-        
-        Users userSaved = usersRepository.save(user);
+    @Autowired
+    private JwtRoleExtractor jwtRoleExtractor;
 
-        UsersCreatedEvent usersCreatedEvent = UsersCreatedEvent.builder()
-            .id(userSaved.getId())
-            .email(userSaved.getEmail())
-            .name(userSaved.getName())
-            .roles(userSaved.getRoles().toString())
-            .eventTs(LocalDateTime.now())
-            .build();
+    @Autowired
+    private LockService idempotencyService;
 
-        // send to rabbitmq
-        messageProducerUsers.sendUsersCreateEvent(usersCreatedEvent);
+    public UserResponseDTO getOrCreateUser(Jwt jwt,String idempotencyKey){
 
-        return new UserResponseDTO(
-            userSaved.getId(),
-            userSaved.getName(),
-            userSaved.getEmail(),
-            userSaved.getRoles(),
-            userSaved.getCreatedAt()
+        return idempotencyService.execute(
+            idempotencyKey, 
+            () -> createOrGet(jwt)
         );
     }
 
-    public UserResponseDTO deleteUser(Long id){
-        if(usersRepository.findById(id).isEmpty()){
-            throw new ApiException("USER NOT FOUND", HttpStatus.NOT_FOUND);
-        }
-
-        Optional<Users> userFound = usersRepository.findById(id);
-        usersRepository.deleteById(id);
-
-        UsersDeletedEvent usersDeletedEvent = UsersDeletedEvent.builder()
-            .id(userFound.get().getId())
-            .name(userFound.get().getName())
-            .email(userFound.get().getEmail())
-            .roles(userFound.get().getRoles().toString())
-            .createdAt(userFound.get().getCreatedAt())
-            .build();
-
-        // send to rabbitmq    
-        messageProducerUsers.sendProviderDeleteEvent(usersDeletedEvent);
-
-        return new UserResponseDTO(
-        userFound.get().getId(),
-        userFound.get().getName(),
-        userFound.get().getEmail(),
-        userFound.get().getRoles(),
-        userFound.get().getCreatedAt());
-    }
-
-    public UserResponseDTO updateUser(Long id,UserRequestDTO userRequestDTO){
-        Users userFound = usersRepository.findById(id).orElseThrow(() ->{
-            throw new ApiException("USER NOT FOUND",HttpStatus.NOT_FOUND);
-        });
-
-        userFound.setName(userRequestDTO.name());
-        userFound.setEmail(userRequestDTO.email());
-        userFound.setRoles(userRequestDTO.roles());
+    public UserResponseDTO createOrGet(Jwt jwt) {
         
-        Users userUpdated = usersRepository.save(userFound);
+        String keycloakId = jwt.getSubject();
+        String email = jwt.getClaim("email");
+        String name = jwt.getClaim("preferred_username");
 
-        UsersUpdatedEvent usersUpdatedEvent = UsersUpdatedEvent.builder()
-            .id(userUpdated.getId())
-            .name(userUpdated.getName())
-            .email(userUpdated.getEmail())
-            .roles(userUpdated.getRoles().toString())
-            .createdAt(LocalDateTime.now())
-            .build();
-        
-        messageProducerUsers.sendProviderUpdateEvent(usersUpdatedEvent);
+        RolesENUM role = jwtRoleExtractor.extractRole(jwt);
 
-        return new UserResponseDTO(
-            userUpdated.getId(),
-            userUpdated.getName(),
-            userUpdated.getEmail(),
-            userUpdated.getRoles(),
-            userUpdated.getCreatedAt()
-        );
-    }
+        Users user =  usersRepository.findByKeycloakId(keycloakId)
+            .orElseGet(() -> {
 
-    public UserResponseDTO getUserById(Long id){
-        if(usersRepository.findById(id).isEmpty()){
-            throw new ApiException("USER NOT FOUND", HttpStatus.NOT_FOUND);
-        }
+                Users newUser = Users.builder()
+                    .keycloakId(keycloakId)
+                    .email(email)
+                    .name(name)
+                    .roles(role)
+                    .createdAt(LocalDateTime.now())
+                    .build();
 
-        Optional<Users> userFound = usersRepository.findById(id);
-        return new UserResponseDTO(
-            userFound.get().getId(),
-            userFound.get().getName(),
-            userFound.get().getEmail(),
-            userFound.get().getRoles(),
-            userFound.get().getCreatedAt()
-        );
-    }
+                Users savedUser = usersRepository.save(newUser);
 
-    public List<UserResponseDTO> getAllUsers(){
-        List<Users> usersFound = usersRepository.findAll();
+                messageProducerUsers.sendUsersCreateEvent(
+                    UsersCreatedEvent.builder()
+                        .id(savedUser.getId())
+                        .name(savedUser.getName())
+                        .email(savedUser.getEmail())
+                        .roles(savedUser.getRoles().toString())
+                        .createdAt(LocalDateTime.now())
+                        .build()
+                );
 
-        if(usersFound.isEmpty()){
-            throw new ApiException("USER NOT FOUND", HttpStatus.NOT_FOUND);
-        }
+                return savedUser;
+            });
 
-        return usersFound.stream()
-            .map(user -> new UserResponseDTO(
+            return new UserResponseDTO(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRoles(),
                 user.getCreatedAt()
-            )).collect(Collectors.toList());
+            );
     }
 
+
+   
 }
