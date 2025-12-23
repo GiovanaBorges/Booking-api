@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.amqp.core.*;
 
+@Profile("!test")
 @Configuration
 public class RabbitMQConfig {
     private static final Logger log = LoggerFactory.getLogger(RabbitMQConfig.class);
