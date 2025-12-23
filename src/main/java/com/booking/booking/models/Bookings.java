@@ -42,9 +42,11 @@ public class Bookings {
     @JoinColumn(name = "customer_id")
     private Users customer;
 
+    @Column(name = "start_ts")
     private LocalDateTime  startsTs;
 
-    private LocalDateTime  endTs;
+    @Column(name = "end_ts")
+    private LocalDateTime endTs;
 
     @Enumerated(EnumType.STRING)
     private StatusENUM status;
