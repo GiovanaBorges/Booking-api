@@ -30,7 +30,7 @@ public class ProviderAvailabilityController {
     public ResponseEntity<ProviderAvailabilityResponseDTO> registerProviderAvailability(
         @RequestBody ProviderAvailabilityRequestDTO request,
         @RequestHeader("Idempotency-Key") String key) {
-        return ResponseEntity.ok().body(services.saveProviderAvailability(request));
+        return ResponseEntity.ok().body(services.saveProviderAvailability(request,key));
     }
 
     @PutMapping("/{id}")
