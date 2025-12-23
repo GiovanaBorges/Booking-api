@@ -11,6 +11,8 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,32 +27,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 public class UsersController {
     @Autowired
     private UsersServices service;
-
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long id) {
-        return ResponseEntity.ok().body(service.getUserById(id));
-    }
     
     @PostMapping("/register")
     public ResponseEntity<UserResponseDTO> RegisterUser(
-        @RequestBody UserRequestDTO userRequestDTO,
-        @RequestHeader("Idempotency-Key") String key) {
-        return ResponseEntity.ok().body(service.saveUser(userRequestDTO));
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestHeader(value = "Idempotency-Key", required = false) String key) {
+
+        return ResponseEntity.ok().body(service.getOrCreateUser(jwt,key));
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
-        return ResponseEntity.ok().body(service.getAllUsers());
-    }
-
-    @PutMapping("/update/{id}")
-    public ResponseEntity<UserResponseDTO> updateUser(@RequestBody UserRequestDTO userRequestDTO,@PathVariable Long id) {
-        return ResponseEntity.ok().body(service.updateUser(id, userRequestDTO));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> deleteUser(@PathVariable Long id){
-        return ResponseEntity.ok().body(service.deleteUser(id));
-    }
+   
     
 }
