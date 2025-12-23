@@ -8,4 +8,5 @@ import com.booking.booking.models.Users;
 
 public interface UsersRepository extends JpaRepository<Users,Long>{
     Optional<Users>findByEmail(String email);
+    Optional<Users> findByKeycloakId(String keycloakId);
 }
