@@ -34,7 +34,21 @@ public class ProviderAvailabilityservices {
     @Autowired
     private MessageProducerProvider messageProducerProvider;
 
-    public ProviderAvailabilityResponseDTO saveProviderAvailability(ProviderAvailabilityRequestDTO requestDTO){
+    @Autowired
+    private LockService idempotencyService;
+
+    public ProviderAvailabilityResponseDTO saveProviderAvailability(
+            ProviderAvailabilityRequestDTO requestDTO,
+            String idempotencyKey) {
+
+        return idempotencyService.execute(
+            idempotencyKey,
+            () -> createAvailability(requestDTO)
+        );
+    }
+
+
+    public ProviderAvailabilityResponseDTO createAvailability(ProviderAvailabilityRequestDTO requestDTO){
         
         Users provider = usersRepository.findById(requestDTO.providerId())
             .orElseThrow(() -> new ApiException("Provider availability not found", HttpStatus.NOT_FOUND));
