@@ -36,6 +36,9 @@ public class Users {
     @NotBlank
     private String name;
 
+    @Column(unique = true, nullable = false)
+    private String keycloakId;
+
     @Email
     @Column(unique = true)
     private String email;
