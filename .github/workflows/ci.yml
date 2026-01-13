@@ -1,0 +1,50 @@
+name: Java CI com Testcontainers RabbitMQ
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load .env da pasta config
+        uses: ./.github/actions/setup-dotenv
+        with:
+          path: ".env.example"
+
+       # --------------- SETUP JAVA + MAVEN ---------------
+      - name: Setup Java + Maven
+        uses: ./.github/actions/setup-java-maven
+        with:
+          java-version: 17
+
+      # 🟦 Composite Action → instala e sobe RabbitMQ
+      - name: Setup RabbitMQ
+        uses: ./.github/actions/setup-rabbitmq
+
+      - name: Rodar testes (incluindo Testcontainers)
+        shell: bash
+        run: mvn -B clean verify
+
+      # --------------- UPLOAD RELATÓRIO JACOCO ---------------
+      - name: Upload Jacoco Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/  
+
+       # --------------- UPLOAD RELATÓRIOS DE TESTE ---------------
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/

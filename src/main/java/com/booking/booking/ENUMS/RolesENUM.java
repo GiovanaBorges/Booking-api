@@ -1,6 +1,6 @@
 package com.booking.booking.ENUMS;
 
-public enum RolesEnum {
+public enum RolesENUM {
     PROVIDER,
     CLIENT
 }

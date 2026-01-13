@@ -1,0 +1,66 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  h2:
+    console:
+      enabled: false
+
+  # ❗ Desativa Testcontainers automático do Spring Boot
+  testcontainers:
+    enabled: false
+
+# Evita subir RabbitMQ, Redis e outros containers durante testes
+rabbitmq:
+  provider:
+    exchange: provider-exchange
+    routing:
+      created: provider.created
+      updated: provider.updated
+      deleted: provider.deleted
+    queue:
+      created: provider.created.q
+      updated: provider.updated.q
+      deleted: provider.deleted.q
+    dlq:
+      created: provider.created.dlq
+      updated: provider.updated.dlq
+      deleted: provider.deleted.dlq
+
+  users:
+    exchange: user-exchange
+    routing:
+      created: users.created
+      updated: users.updated
+      deleted: users.deleted
+    queue:
+      created: users.created.q
+      updated: users.updated.q
+      deleted: users.deleted.q
+    dlq:
+      created: users.created.dlq
+      updated: users.updated.dlq
+      deleted: users.deleted.dlq
+
+  bookings:
+    exchange: booking-exchange
+    routing:
+      created: booking.created
+      updated: booking.updated
+      deleted: booking.deleted
+    queue:
+      created: booking.created.q
+      updated: booking.updated.q
+      deleted: booking.deleted.q
+    dlq:
+      created: booking.created.dlq
+      updated: booking.updated.dlq
+      deleted: booking.deleted.dlq

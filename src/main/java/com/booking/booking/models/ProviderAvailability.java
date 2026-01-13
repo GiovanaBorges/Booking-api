@@ -1,6 +1,5 @@
 package com.booking.booking.models;
 
-import java.sql.Timestamp;
 import java.time.LocalTime;
 
 import jakarta.persistence.Entity;
@@ -21,7 +20,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Table(name = "provider_availability")
-public class Provider_availability {
+public class ProviderAvailability {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

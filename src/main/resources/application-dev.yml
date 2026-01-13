@@ -8,14 +8,98 @@ spring:
     username: sa
     password:
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}    
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin}
+ 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate.format_sql: true
 
   h2:
     console:
       enabled: true
       path: /h2-console
+
+rabbitmq:
+# ============================================
+# PROVIDER AVAILABILITY EVENT CONFIG
+# ============================================
+  provider:
+    exchange: ${RABBITMQ_PROVIDER_EXCHANGE}
+    routing:
+      created: ${RABBITMQ_PROVIDER_ROUTING_CREATED}
+      updated: ${RABBITMQ_PROVIDER_ROUTING_UPDATED}
+      deleted: ${RABBITMQ_PROVIDER_ROUTING_DELETED}
+
+    queue:
+      created: ${RABBITMQ_PROVIDER_QUEUE_CREATED}
+      updated: ${RABBITMQ_PROVIDER_QUEUE_UPDATED}
+      deleted: ${RABBITMQ_PROVIDER_QUEUE_DELETED}
+
+    dlq:
+      created: ${RABBITMQ_PROVIDER_DLQ_CREATED}
+      updated: ${RABBITMQ_PROVIDER_DLQ_UPDATED}
+      deleted: ${RABBITMQ_PROVIDER_DLQ_DELETED}
+
+# ============================================
+# USERS AVAILABILITY EVENT CONFIG
+# ============================================
+
+  users:
+    exchange: ${RABBITMQ_USERS_EXCHANGE}
+    routing:
+      created: ${RABBITMQ_USERS_ROUTING_CREATED}
+      updated: ${RABBITMQ_USERS_ROUTING_UPDATED}
+      deleted: ${RABBITMQ_USERS_ROUTING_DELETED}
+
+    queue:
+      created: ${RABBITMQ_USERS_QUEUE_CREATED}
+      updated: ${RABBITMQ_USERS_QUEUE_UPDATED}
+      deleted: ${RABBITMQ_USERS_QUEUE_DELETED}
+
+    dlq:
+      created: ${RABBITMQ_USERS_DLQ_CREATED}
+      updated: ${RABBITMQ_USERS_DLQ_UPDATED}
+      deleted: ${RABBITMQ_USERS_DLQ_DELETED} 
+  
+# ============================================
+# BOOKING AVAILABILITY EVENT CONFIG
+# ============================================
+
+  booking:
+    exchange: ${RABBITMQ_BOOKING_EXCHANGE}
+    routing:
+      created: ${RABBITMQ_BOOKING_ROUTING_CREATED}
+      updated: ${RABBITMQ_BOOKING_ROUTING_UPDATED}
+      deleted: ${RABBITMQ_BOOKING_ROUTING_DELETED}
+
+    queue:
+      created: ${RABBITMQ_BOOKING_QUEUE_CREATED}
+      updated: ${RABBITMQ_BOOKING_QUEUE_UPDATED}
+      deleted: ${RABBITMQ_BOOKING_QUEUE_DELETED}
+
+    dlq:
+      created: ${RABBITMQ_BOOKING_DLQ_CREATED}
+      updated: ${RABBITMQ_BOOKING_DLQ_UPDATED}
+      deleted: ${RABBITMQ_BOOKING_DLQ_DELETED} 
+  
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoint:
+    prometheus:
+      enabled: true
+  otlp:
+    tracing:
+      endpoint: http://localhost:4317
+     

@@ -1,14 +1,15 @@
 package com.booking.booking.models;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-import org.antlr.v4.runtime.misc.NotNull;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import com.booking.booking.ENUMS.RolesEnum;
+import com.booking.booking.ENUMS.RolesENUM;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -25,6 +26,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 @Builder
 public class Users {
     @Id
@@ -34,13 +36,17 @@ public class Users {
     @NotBlank
     private String name;
 
+    @Column(unique = true, nullable = false)
+    private String keycloakId;
+
     @Email
     @Column(unique = true)
     private String email;
 
     @Enumerated(EnumType.STRING)
-    private RolesEnum roles;
+    private RolesENUM roles;
     
+    @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }
