@@ -9,4 +9,4 @@ spring:
         oauth2:
             resourceserver:
                 jwt:
-                    issuer-uri: http://auth-server:8080/realms/booking-realm
+                    issuer-uri: http://localhost:8080/realms/Bookings
