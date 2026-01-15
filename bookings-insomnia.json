@@ -1,0 +1,149 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-01-03T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023",
+  "resources": [
+    {
+      "_id": "wrk_booking_api",
+      "_type": "workspace",
+      "name": "Booking API",
+      "description": "Collection for Booking and Provider Availability API",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_localhost",
+      "_type": "environment",
+      "name": "Localhost",
+      "data": {
+        "base_url": "http://localhost:8080"
+      },
+      "parentId": "wrk_booking_api"
+    },
+
+    {
+      "_id": "fld_bookings",
+      "_type": "request_group",
+      "name": "Bookings",
+      "parentId": "wrk_booking_api"
+    },
+    {
+      "_id": "req_booking_register",
+      "_type": "request",
+      "name": "Register Booking",
+      "method": "POST",
+      "url": "{{ base_url }}/bookings/register",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Idempotency-Key", "value": "booking-123" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"providerId\": 1,\n  \"customerId\": 10,\n  \"startsTs\": \"2026-01-10T14:00:00\",\n  \"endTs\": \"2026-01-10T15:00:00\",\n  \"status\": \"CONFIRMED\"\n}"
+      },
+      "parentId": "fld_bookings"
+    },
+    {
+      "_id": "req_booking_get_all",
+      "_type": "request",
+      "name": "Get All Bookings",
+      "method": "GET",
+      "url": "{{ base_url }}/bookings/all",
+      "parentId": "fld_bookings"
+    },
+    {
+      "_id": "req_booking_get_by_id",
+      "_type": "request",
+      "name": "Get Booking By ID",
+      "method": "GET",
+      "url": "{{ base_url }}/bookings/1",
+      "parentId": "fld_bookings"
+    },
+    {
+      "_id": "req_booking_update",
+      "_type": "request",
+      "name": "Update Booking",
+      "method": "PUT",
+      "url": "{{ base_url }}/bookings/update/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"providerId\": 1,\n  \"customerId\": 10,\n  \"startsTs\": \"2026-01-10T16:00:00\",\n  \"endTs\": \"2026-01-10T17:00:00\",\n  \"status\": \"RESCHEDULED\"\n}"
+      },
+      "parentId": "fld_bookings"
+    },
+    {
+      "_id": "req_booking_delete",
+      "_type": "request",
+      "name": "Delete Booking",
+      "method": "DELETE",
+      "url": "{{ base_url }}/bookings/1",
+      "parentId": "fld_bookings"
+    },
+
+
+    {
+      "_id": "fld_provider",
+      "_type": "request_group",
+      "name": "Provider Availability",
+      "parentId": "wrk_booking_api"
+    },
+    {
+      "_id": "req_provider_register",
+      "_type": "request",
+      "name": "Register Provider Availability",
+      "method": "POST",
+      "url": "{{ base_url }}/provider-availability/register",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Idempotency-Key", "value": "provider-456" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"day_of_week\": 1,\n  \"startTime\": \"09:00\",\n  \"end_time\": \"18:00\",\n  \"providerId\": 1\n}"
+      },
+      "parentId": "fld_provider"
+    },
+    {
+      "_id": "req_provider_get_all",
+      "_type": "request",
+      "name": "Get All Providers",
+      "method": "GET",
+      "url": "{{ base_url }}/provider-availability/allproviders",
+      "parentId": "fld_provider"
+    },
+    {
+      "_id": "req_provider_get_by_id",
+      "_type": "request",
+      "name": "Get Provider By ID",
+      "method": "GET",
+      "url": "{{ base_url }}/provider-availability/1",
+      "parentId": "fld_provider"
+    },
+    {
+      "_id": "req_provider_update",
+      "_type": "request",
+      "name": "Update Provider Availability",
+      "method": "PUT",
+      "url": "{{ base_url }}/provider-availability/1",
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"day_of_week\": 3,\n  \"startTime\": \"10:00\",\n  \"end_time\": \"16:00\",\n  \"providerId\": 1\n}"
+      },
+      "parentId": "fld_provider"
+    },
+    {
+      "_id": "req_provider_delete",
+      "_type": "request",
+      "name": "Delete Provider Availability",
+      "method": "DELETE",
+      "url": "{{ base_url }}/provider-availability/1",
+      "parentId": "fld_provider"
+    }
+  ]
+}
