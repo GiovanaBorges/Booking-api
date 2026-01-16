@@ -64,3 +64,11 @@ rabbitmq:
       created: booking.created.dlq
       updated: booking.updated.dlq
       deleted: booking.deleted.dlq
+
+
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false
