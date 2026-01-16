@@ -24,10 +24,6 @@ jobs:
         with:
           java-version: 17
 
-      # 🟦 Composite Action → instala e sobe RabbitMQ
-      - name: Setup RabbitMQ
-        uses: ./.github/actions/setup-rabbitmq
-
       - name: Rodar testes (incluindo Testcontainers)
         shell: bash
         run: mvn -B clean verify
