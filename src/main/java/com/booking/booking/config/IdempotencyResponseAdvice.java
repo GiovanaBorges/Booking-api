@@ -1,11 +1,13 @@
 package com.booking.booking.config;
 
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
@@ -13,8 +15,9 @@ import com.booking.booking.repositories.IdempotencyRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-
+@Profile("prod")
 @ControllerAdvice
 public class IdempotencyResponseAdvice implements ResponseBodyAdvice<Object> {
 
@@ -34,24 +37,32 @@ public class IdempotencyResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public Object beforeBodyWrite(Object body,
-                                  MethodParameter returnType,
-                                  MediaType contentType,
-                                  Class converterType,
-                                  ServerHttpRequest request,
-                                  ServerHttpResponse response) {
+                              MethodParameter returnType,
+                              MediaType contentType,
+                              Class converterType,
+                              ServerHttpRequest request,
+                              ServerHttpResponse response) {
 
-        HttpServletRequest http = ((ServletServerHttpRequest) request).getServletRequest();
+    HttpServletRequest httpRequest =
+        ((ServletServerHttpRequest) request).getServletRequest();
 
-        if (!"POST".equals(http.getMethod())) return body;
+    HttpServletResponse httpResponse =
+        ((ServletServerHttpResponse) response).getServletResponse();
 
-        String key = (String) http.getAttribute("IDEMP_KEY");
-        if (key == null) return body;
+    if (!"POST".equals(httpRequest.getMethod())) return body;
 
-        try {
-            String json = mapper.writeValueAsString(body);
-            repo.save(key, json);
-        } catch (Exception ignored) {}
-
+    if (httpResponse.getStatus() >= 400) {
         return body;
     }
+
+    String key = (String) httpRequest.getAttribute("IDEMP_KEY");
+    if (key == null) return body;
+
+    try {
+        String json = mapper.writeValueAsString(body);
+        repo.save(key, json);
+    } catch (Exception ignored) {}
+
+    return body;
+}
 }

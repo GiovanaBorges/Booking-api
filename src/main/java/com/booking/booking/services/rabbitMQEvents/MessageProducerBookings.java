@@ -18,16 +18,16 @@ public class MessageProducerBookings {
     private static final Logger log = LoggerFactory.getLogger(MessageProducerBookings.class);
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${rabbitmq.bookings.exchange}")
+    @Value("${rabbitmq.booking.exchange}")
     private String bookingsExchange;
 
-    @Value("${rabbitmq.bookings.routing.created}")
+    @Value("${rabbitmq.booking.routing.created}")
     private String createdRK;
 
-    @Value("${rabbitmq.bookings.routing.updated}")
+    @Value("${rabbitmq.booking.routing.updated}")
     private String updatedRK;
 
-    @Value("${rabbitmq.bookings.routing.deleted}")
+    @Value("${rabbitmq.booking.routing.deleted}")
     private String deletedRK;
 
     public void sendBookingCreateEvent(BookingCreatedEvent event){

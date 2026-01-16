@@ -50,7 +50,7 @@ rabbitmq:
       updated: users.updated.dlq
       deleted: users.deleted.dlq
 
-  bookings:
+  booking:
     exchange: booking-exchange
     routing:
       created: booking.created
@@ -64,3 +64,11 @@ rabbitmq:
       created: booking.created.dlq
       updated: booking.updated.dlq
       deleted: booking.deleted.dlq
+
+
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false

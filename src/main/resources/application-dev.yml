@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   datasource:
@@ -103,3 +103,6 @@ management:
     tracing:
       endpoint: http://localhost:4317
      
+logging:
+  level:
+    org.springframework.security: DEBUG
