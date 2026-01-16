@@ -24,7 +24,6 @@ import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.events.usersEvents.UsersCreatedEvent;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.UsersRepository;
-import com.booking.booking.security.JwtRoleExtractor;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerUsers;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,9 +34,6 @@ public class UsersServiceTest {
 
     @Mock
     private MessageProducerUsers messageProducerUsers;
-
-    @Mock
-    private JwtRoleExtractor jwtRoleExtractor;
 
     @InjectMocks
     private UsersServices service;
@@ -50,8 +46,7 @@ public class UsersServiceTest {
         when(jwt.getSubject()).thenReturn("keycloakId123");
         when(jwt.getClaim("email")).thenReturn("email@email.com");
         when(jwt.getClaim("preferred_username")).thenReturn("user1");
-        when(jwtRoleExtractor.extractRole(jwt)).thenReturn(RolesENUM.PROVIDER);
-
+        
         Users existingUser = Users.builder()
             .id(1L)
             .keycloakId("keycloakId123")
@@ -71,6 +66,7 @@ public class UsersServiceTest {
             () -> assertEquals(existingUser.getName(), responseDTO.name()),
             () -> assertEquals(existingUser.getEmail(), responseDTO.email()),
             () -> assertEquals(existingUser.getRoles(), responseDTO.roles()),
+            () -> assertEquals(RolesENUM.PROVIDER, responseDTO.roles()),
             () -> assertEquals(existingUser.getCreatedAt(), responseDTO.createdAt())
         );
 
@@ -89,8 +85,6 @@ public class UsersServiceTest {
         when(jwt.getSubject()).thenReturn("keycloakId123");
         when(jwt.getClaim("email")).thenReturn("email@email.com");
         when(jwt.getClaim("preferred_username")).thenReturn("user1");
-        when(jwtRoleExtractor.extractRole(jwt))
-            .thenReturn(RolesENUM.PROVIDER);
 
         when(repository.findByKeycloakId("keycloakId123"))
             .thenReturn(Optional.empty());
@@ -108,7 +102,7 @@ public class UsersServiceTest {
             () -> assertEquals(1L, responseDTO.id()),
             () -> assertEquals("user1", responseDTO.name()),
             () -> assertEquals("email@email.com", responseDTO.email()),
-            () -> assertEquals(RolesENUM.PROVIDER, responseDTO.roles()),
+            () -> assertEquals(RolesENUM.ADMIN, responseDTO.roles()),
             () -> assertEquals(responseDTO.createdAt(), responseDTO.createdAt())
         );
 
