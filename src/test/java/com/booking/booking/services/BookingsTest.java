@@ -27,8 +27,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 
-import com.booking.booking.DTO.BookingsRequestDTO;
-import com.booking.booking.DTO.BookingsResponseDTO;
+import com.booking.booking.DTO.requests.BookingsRequestDTO;
+import com.booking.booking.DTO.responses.BookingsResponseDTO;
 import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.events.bookingEvents.BookingCreatedEvent;
 import com.booking.booking.events.bookingEvents.BookingDeletedEvent;
@@ -116,7 +116,7 @@ public class BookingsTest {
                booking.getStartsTs(),
                booking.getEndTs(),
                booking.getStatus()
-            ),"idem-key-123"
+            )
         );
 
         assertAll(

@@ -10,7 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import com.booking.booking.DTO.UserResponseDTO;
+import com.booking.booking.DTO.responses.UserResponseDTO;
 import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.events.usersEvents.UsersCreatedEvent;
 import com.booking.booking.exceptions.ApiException;

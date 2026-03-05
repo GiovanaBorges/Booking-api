@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.booking.booking.DTO.BookingsRequestDTO;
-import com.booking.booking.DTO.BookingsResponseDTO;
+import com.booking.booking.DTO.requests.BookingsRequestDTO;
+import com.booking.booking.DTO.responses.BookingsResponseDTO;
 import com.booking.booking.services.BookingsServices;
 
 import org.springframework.web.bind.annotation.PostMapping;

@@ -1,4 +1,4 @@
-package com.booking.booking.DTO;
+package com.booking.booking.DTO.requests;
 
 import java.time.LocalTime;
 

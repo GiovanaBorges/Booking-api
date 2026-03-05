@@ -3,8 +3,8 @@ package com.booking.booking.controllers;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.booking.booking.DTO.ProviderAvailabilityRequestDTO;
-import com.booking.booking.DTO.ProviderAvailabilityResponseDTO;
+import com.booking.booking.DTO.requests.ProviderAvailabilityRequestDTO;
+import com.booking.booking.DTO.responses.ProviderAvailabilityResponseDTO;
 import com.booking.booking.services.ProviderAvailabilityservices;
 
 import java.util.List;
@@ -28,9 +28,8 @@ public class ProviderAvailabilityController {
     
     @PostMapping("/register")
     public ResponseEntity<ProviderAvailabilityResponseDTO> registerProviderAvailability(
-        @RequestBody ProviderAvailabilityRequestDTO request,
-        @RequestHeader("Idempotency-Key") String key) {
-        return ResponseEntity.ok().body(services.saveProviderAvailability(request,key));
+        @RequestBody ProviderAvailabilityRequestDTO request) {
+        return ResponseEntity.ok().body(services.saveProviderAvailability(request));
     }
 
     @PutMapping("/{id}")

@@ -1,4 +1,4 @@
-package com.booking.booking.DTO;
+package com.booking.booking.DTO.requests;
 
 import com.booking.booking.ENUMS.RolesENUM;
 

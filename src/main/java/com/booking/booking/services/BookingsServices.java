@@ -14,8 +14,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import com.booking.booking.DTO.BookingsRequestDTO;
-import com.booking.booking.DTO.BookingsResponseDTO;
+import com.booking.booking.DTO.requests.BookingsRequestDTO;
+import com.booking.booking.DTO.responses.BookingsResponseDTO;
 import com.booking.booking.events.bookingEvents.BookingCreatedEvent;
 import com.booking.booking.events.bookingEvents.BookingDeletedEvent;
 import com.booking.booking.events.bookingEvents.BookingUpdatedEvent;
@@ -37,36 +37,10 @@ public class BookingsServices {
     @Autowired
     private UsersRepository usersRepository;
 
-    @Autowired
-    private LockService lockService;
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
     
     @CacheEvict(value = "bookings", allEntries = true)
-    public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO,String idempotencyKey){
-
-        String idempotencyRedisKey = "idempotency:" +idempotencyKey;
-
-        String existing = redisTemplate.opsForValue().get(idempotencyRedisKey);
-        if(existing != null){
-            throw new ApiException("IDEMPOTENCY REPLAY", HttpStatus.CONFLICT);
-        }
-
-        String lockKey = String.format(
-            "lock:booking:%d:%s:%s",
-            requestDTO.providerId(),
-            requestDTO.startsTs(),
-            requestDTO.endTs()
-        );
-
-        boolean locked = lockService.acquireLock(lockKey, Duration.ofSeconds(10));
-        if(!locked){
-            throw new ApiException("LOCK NOT ACQUIRED", HttpStatus.LOCKED);
-        }
+    public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO){
         
-        try{
             Optional<Bookings> conflict = bookingsRepository.findConflict(
                 requestDTO.providerId(), 
                 requestDTO.startsTs(),
@@ -99,12 +73,6 @@ public class BookingsServices {
         
         Bookings bookingSaved = bookingsRepository.save(booking);
 
-        redisTemplate.opsForValue()
-            .set(idempotencyRedisKey, 
-                bookingSaved.getId().toString(),
-                Duration.ofHours(24)
-            );
-
         BookingCreatedEvent bookingCreatedEvent = BookingCreatedEvent.builder()
             .id(bookingSaved.getId())
             .customerId(bookingSaved.getCustomer().getId())
@@ -126,10 +94,6 @@ public class BookingsServices {
             bookingSaved.getCreatedAt(),
             bookingSaved.getUpdatedAt()
         );
-
-    } finally{
-        lockService.releaseLock(lockKey);
-    }
     }
 
     @Cacheable(value = "bookings", key = "#id")
