@@ -30,13 +30,6 @@ public class UsersServices {
     @Autowired
     private LockService idempotencyService;
 
-    public UserResponseDTO getOrCreateUser(Jwt jwt, String idempotencyKey) {
-
-        return idempotencyService.execute(
-                idempotencyKey,
-                () -> createOrGet(jwt));
-    }
-
     public UserResponseDTO createOrGet(Jwt jwt) {
 
         String keycloakId = jwt.getSubject();
