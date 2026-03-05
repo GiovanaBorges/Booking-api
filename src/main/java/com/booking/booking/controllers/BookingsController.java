@@ -28,9 +28,8 @@ public class BookingsController {
     private BookingsServices bookingsServices;
 
     @PostMapping("/register")
-    public ResponseEntity<BookingsResponseDTO> bookingsRegister(@RequestBody BookingsRequestDTO requestDTO,
-        @RequestHeader("Idempotency-Key") String key) {
-        return ResponseEntity.ok().body(bookingsServices.saveBooking(requestDTO, key));
+    public ResponseEntity<BookingsResponseDTO> bookingsRegister(@RequestBody BookingsRequestDTO requestDTO) {
+        return ResponseEntity.ok().body(bookingsServices.saveBooking(requestDTO));
     }
 
     @GetMapping("/all")
