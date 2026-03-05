@@ -97,12 +97,19 @@ management:
     tags:
       application: ${spring.application.name}
   endpoint:
-    prometheus:
-      enabled: true
+      health:
+        show-details: always
+    
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   otlp:
     tracing:
       endpoint: http://localhost:4317
      
 logging:
   level:
-    org.springframework.security: DEBUG
+    root: INFO
+    "[org.springframework.amqp.rabbit.core.RabbitTemplate]": DEBUG
+    "[org.springframework.amqp.rabbit.listener]": DEBUG
