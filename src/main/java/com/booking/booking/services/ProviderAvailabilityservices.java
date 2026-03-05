@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import com.booking.booking.DTO.ProviderAvailabilityRequestDTO;
-import com.booking.booking.DTO.ProviderAvailabilityResponseDTO;
+import com.booking.booking.DTO.requests.ProviderAvailabilityRequestDTO;
+import com.booking.booking.DTO.responses.ProviderAvailabilityResponseDTO;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityCreatedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityDeletedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityUpdatedEvent;
@@ -34,21 +34,8 @@ public class ProviderAvailabilityservices {
     @Autowired
     private MessageProducerProvider messageProducerProvider;
 
-    @Autowired
-    private LockService idempotencyService;
-
-    public ProviderAvailabilityResponseDTO saveProviderAvailability(
-            ProviderAvailabilityRequestDTO requestDTO,
-            String idempotencyKey) {
-
-        return idempotencyService.execute(
-            idempotencyKey,
-            () -> createAvailability(requestDTO)
-        );
-    }
-
-
-    public ProviderAvailabilityResponseDTO createAvailability(ProviderAvailabilityRequestDTO requestDTO){
+   
+    public ProviderAvailabilityResponseDTO saveProviderAvailability(ProviderAvailabilityRequestDTO requestDTO){
         
         Users provider = usersRepository.findById(requestDTO.providerId())
             .orElseThrow(() -> new ApiException("Provider availability not found", HttpStatus.NOT_FOUND));
