@@ -3,17 +3,13 @@ package com.booking.booking.services;
 import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import com.booking.booking.DTO.responses.UserResponseDTO;
 import com.booking.booking.ENUMS.RolesENUM;
-import com.booking.booking.events.usersEvents.UsersCreatedEvent;
-import com.booking.booking.exceptions.ApiException;
+import com.booking.booking.mappers.UserMapper;
+import com.booking.booking.mappers.events.UserEventMapper;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.UsersRepository;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerUsers;
@@ -28,7 +24,10 @@ public class UsersServices {
     private MessageProducerUsers messageProducerUsers;
 
     @Autowired
-    private LockService idempotencyService;
+    private UserMapper mapperUser;
+
+    @Autowired
+    private UserEventMapper userEventMapper;
 
     public UserResponseDTO createOrGet(Jwt jwt) {
 
@@ -50,24 +49,12 @@ public class UsersServices {
 
                     Users savedUser = usersRepository.save(newUser);
 
-                    messageProducerUsers.sendUsersCreateEvent(
-                            UsersCreatedEvent.builder()
-                                    .id(savedUser.getId())
-                                    .name(savedUser.getName())
-                                    .email(savedUser.getEmail())
-                                    .roles(savedUser.getRoles().toString())
-                                    .createdAt(LocalDateTime.now())
-                                    .build());
+                    messageProducerUsers.sendUsersCreateEvent(userEventMapper.toCreateEvent(savedUser));
 
                     return savedUser;
                 });
 
-        return new UserResponseDTO(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRoles(),
-                user.getCreatedAt());
+        return mapperUser.toResponse(user);
     }
 
 }
