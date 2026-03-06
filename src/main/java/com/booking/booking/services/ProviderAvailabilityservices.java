@@ -16,6 +16,7 @@ import com.booking.booking.events.providerEvents.ProviderAvailabilityDeletedEven
 import com.booking.booking.events.providerEvents.ProviderAvailabilityUpdatedEvent;
 import com.booking.booking.exceptions.ApiException;
 import com.booking.booking.mappers.ProviderAvailabilityMapper;
+import com.booking.booking.mappers.events.ProviderAvailabilityEventMapper;
 import com.booking.booking.models.ProviderAvailability;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.ProviderAvailabilityRepository;
