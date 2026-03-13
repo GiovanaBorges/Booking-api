@@ -133,8 +133,12 @@ public class BookingsServices {
     @RateLimiter(name = "bookingsRateLimiter")
     @Cacheable(value = "bookings", key = "'all'")
     public List<BookingsResponseDTO> getAllBookings(){
-        return bookingsRepository.findAll()
-            .stream()
+        List<Bookings> bookings = bookingsRepository.findAll();
+
+        if(bookings.isEmpty()){
+            throw new ApiException("NO BOOKINGS FOUND",HttpStatus.NOT_FOUND);
+        }
+        return bookings.stream()
             .map(bookingMapper::toResponse)
             .toList();
 
