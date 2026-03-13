@@ -1,426 +1,420 @@
-# Gitleaks
+# Booking API
+
+![Java](https://img.shields.io/badge/Java-17-orange)
+![Spring Boot](https://img.shields.io/badge/SpringBoot-3.x-brightgreen)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-Event--Driven-orange)
+![Tests](https://img.shields.io/badge/Tests-JUnit%20%7C%20Mockito-blue)
+![Resilience](https://img.shields.io/badge/Resilience-Resilience4j-purple)
+[![codecov](https://codecov.io/gh/GiovanaBorges/Booking-api/branch/main/graph/badge.svg)](https://codecov.io/gh/GiovanaBorges/Booking-api)
+
+
+Backend service responsible for managing bookings between users and service providers (for example online therapy sessions, consultations, mentoring sessions, etc).
+
+The service exposes REST APIs for creating and managing bookings and publishes domain events to RabbitMQ so other services can react asynchronously, such as the Notification Service responsible for delivering real-time updates to users via WebSocket.
+
+---
+
+# Overview
+
+The Booking API handles the lifecycle of bookings between two actors:
+
+* **User** – the person requesting a session
+* **Provider** – the person offering a service
+
+Example scenario:
+
+1. A user schedules a session with a provider
+2. The booking is stored by the Booking API
+3. A domain event is published to RabbitMQ
+4. Other services consume the event
+5. The user receives a real-time notification through the frontend
+
+This architecture allows services to remain loosely coupled and react to business events independently.
+
+---
+
+# Architecture Diagram
+
+The system follows a microservices-oriented architecture where the Booking API is responsible for managing bookings and publishing domain events.
+
+Other services can react to these events asynchronously.
 
 ```
-┌─○───┐
-│ │╲  │
-│ │ ○ │
-│ ○ ░ │
-└─░───┘
+                  ┌──────────────────────┐
+                  │      Frontend        │
+                  │  (Web / Mobile App) │
+                  └──────────┬───────────┘
+                             │
+                        REST API
+                             │
+                     ┌───────▼────────┐
+                     │   Booking API  │
+                     │  Spring Boot   │
+                     └───────┬────────┘
+                             │
+                       Domain Events
+                             │
+                       ┌─────▼─────┐
+                       │  RabbitMQ │
+                       └─────┬─────┘
+                             │
+                 ┌───────────▼───────────┐
+                 │   Notification Service │
+                 │  WebSocket Delivery   │
+                 └───────────┬───────────┘
+                             │
+                      Real-time updates
+                             │
+                        ┌────▼────┐
+                        │Frontend │
+                        └─────────┘
 ```
 
-<p align="left">
-  <p align="left">
-	  <a href="https://github.com/zricethezav/gitleaks/actions/workflows/test.yml">
-		  <img alt="Github Test" src="https://github.com/zricethezav/gitleaks/actions/workflows/test.yml/badge.svg">
-	  </a>
-	  <a href="https://hub.docker.com/r/zricethezav/gitleaks">
-		  <img src="https://img.shields.io/docker/pulls/zricethezav/gitleaks.svg" />
-	  </a>
-	  <a href="https://github.com/zricethezav/gitleaks-action">
-        	<img alt="gitleaks badge" src="https://img.shields.io/badge/protected%20by-gitleaks-blue">
-    	 </a>
-	  <a href="https://twitter.com/intent/follow?screen_name=zricethezav">
-		  <img src="https://img.shields.io/twitter/follow/zricethezav?label=Follow%20zricethezav&style=social&color=blue" alt="Follow @zricethezav" />
-	  </a>
-  </p>
-</p>
+The Booking API publishes events whenever relevant domain changes occur (such as bookings being created, updated, or deleted).
 
-### Join our Discord! [![Discord](https://img.shields.io/discord/1102689410522284044.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/8Hzbrnkr7E)
+Other services can subscribe to these events without tightly coupling with the Booking API.
 
-Gitleaks is a SAST tool for **detecting** and **preventing** hardcoded secrets like passwords, api keys, and tokens in git repos. Gitleaks is an **easy-to-use, all-in-one solution** for detecting secrets, past or present, in your code.
+---
+
+# Application Architecture
+
+The application follows a **layered architecture**.
+
+### Controllers
+
+Responsible for exposing REST endpoints to the client.
+
+### Services
+
+Contain the core business logic of the application and trigger domain events.
+
+### Repositories
+
+Responsible for persistence and database interaction.
+
+### Events
+
+Represent business actions that occurred inside the system.
+
+### RabbitMQ Producers
+
+Publish events to the message broker so other services can consume them asynchronously.
+
+---
+
+# Event Driven Communication
+
+Instead of tightly coupling services with synchronous REST calls, the system publishes **domain events** through RabbitMQ.
+
+Examples of events emitted by this service:
 
 ```
-➜  ~/code(master) gitleaks detect --source . -v
-
-    ○
-    │╲
-    │ ○
-    ○ ░
-    ░    gitleaks
-
-
-Finding:     "export BUNDLE_ENTERPRISE__CONTRIBSYS__COM=cafebabe:deadbeef",
-Secret:      cafebabe:deadbeef
-RuleID:      sidekiq-secret
-Entropy:     2.609850
-File:        cmd/generate/config/rules/sidekiq.go
-Line:        23
-Commit:      cd5226711335c68be1e720b318b7bc3135a30eb2
-Author:      John
-Email:       john@users.noreply.github.com
-Date:        2022-08-03T12:31:40Z
-Fingerprint: cd5226711335c68be1e720b318b7bc3135a30eb2:cmd/generate/config/rules/sidekiq.go:sidekiq-secret:23
+BookingCreatedEvent
+BookingUpdatedEvent
+BookingDeletedEvent
+UsersCreatedEvent
+ProviderAvailabilityUpdatedEvent
 ```
 
-## Getting Started
+Example flow:
 
-Gitleaks can be installed using Homebrew, Docker, or Go. Gitleaks is also available in binary form for many popular platforms and OS types on the [releases page](https://github.com/zricethezav/gitleaks/releases). In addition, Gitleaks can be implemented as a pre-commit hook directly in your repo or as a GitHub action using [Gitleaks-Action](https://github.com/gitleaks/gitleaks-action).
+```
+User creates booking
+      ↓
+Booking API stores booking
+      ↓
+BookingCreatedEvent published
+      ↓
+RabbitMQ
+      ↓
+Notification Service consumes event
+      ↓
+Frontend receives real-time update
+```
 
-### Installing
+This pattern improves system scalability, flexibility, and service decoupling.
 
-```bash
-# MacOS
-brew install gitleaks
+---
 
-# Docker (DockerHub)
-docker pull zricethezav/gitleaks:latest
-docker run -v ${path_to_host_folder_to_scan}:/path zricethezav/gitleaks:latest [COMMAND] --source="/path" [OPTIONS]
+# Design Decisions
 
-# Docker (ghcr.io)
-docker pull ghcr.io/gitleaks/gitleaks:latest
-docker run -v ${path_to_host_folder_to_scan}:/path ghcr.io/gitleaks/gitleaks:latest [COMMAND] --source="/path" [OPTIONS]
+## Why RabbitMQ
 
-# From Source
-git clone https://github.com/gitleaks/gitleaks.git
-cd gitleaks
+RabbitMQ was chosen as the message broker because it provides:
+
+* Reliable message delivery
+* Flexible routing using exchanges
+* Support for asynchronous communication
+* Mature ecosystem and strong Spring integration
+
+Using RabbitMQ allows the system to move towards an **event-driven architecture**.
+
+---
+
+## Why Resilience4j
+
+Distributed systems are subject to partial failures.
+
+Resilience4j provides mechanisms to handle failures gracefully:
+
+* **Circuit Breaker** prevents repeated calls to failing services
+* **Retry** allows temporary failures to recover automatically
+* **Rate Limiter** protects services from overload
+* **Bulkhead** isolates failures between components
+
+These mechanisms improve system reliability and prevent cascading failures.
+
+---
+
+## Why Testcontainers
+
+Integration tests should run against **real infrastructure whenever possible**.
+
+Testcontainers allows the project to start real containers during tests.
+
+For example:
+
+* RabbitMQ container is started automatically
+* the application connects to it
+* tests run against a real message broker
+
+Benefits:
+
+* Tests closer to production behavior
+* Less reliance on mocks
+* More reliable integration testing
+
+---
+
+## Why MapStruct
+
+DTO mapping can quickly become repetitive and error-prone when implemented manually.
+
+This project uses **MapStruct** to generate mapping code at compile time.
+
+Benefits:
+
+* Type-safe mapping
+* No runtime reflection
+* Better performance than reflection-based mappers
+* Cleaner service layer
+
+Example mapping flow:
+
+```
+Entity → Mapper → DTO
+DTO → Mapper → Entity
+```
+
+This keeps the service layer focused on business logic.
+
+---
+
+## Event Based Notifications
+
+Instead of sending notifications directly from the Booking API, the system publishes events.
+
+The Notification Service consumes those events and delivers them to the frontend through WebSocket.
+
+Benefits:
+
+* Separation of concerns
+* Independent scaling of notification service
+* Easier to extend with new consumers
+
+---
+
+# Resilience
+
+To increase system reliability, the application uses **Resilience4j**.
+
+Implemented resilience patterns:
+
+* Circuit Breaker
+* Retry
+* Rate Limiter
+* Bulkhead
+
+These patterns help prevent cascading failures and improve the stability of distributed systems.
+
+---
+
+# Security
+
+Authentication and authorization are handled using **Keycloak**.
+
+The API expects **JWT tokens issued by Keycloak** and uses a custom converter to map roles from the token to Spring Security authorities.
+
+---
+
+# Observability
+
+The application exposes metrics through **Spring Boot Actuator** and **Micrometer**.
+
+Metrics are exported in **Prometheus format**, allowing monitoring systems to collect metrics.
+
+Examples of exposed metrics:
+
+* HTTP request latency
+* JVM memory usage
+* Thread pools
+* application metrics
+
+These metrics help monitor the health and performance of the service.
+
+---
+
+# Tech Stack
+
+| Technology      | Purpose                          |
+| --------------- | -------------------------------- |
+| Java 17         | Main programming language        |
+| Spring Boot     | Backend framework                |
+| Spring Web      | REST API                         |
+| Spring Security | Authentication and authorization |
+| Keycloak        | Identity provider                |
+| RabbitMQ        | Event messaging                  |
+| Redis           | Caching layer                    |
+| Resilience4j    | Fault tolerance                  |
+| MapStruct       | DTO mapping                      |
+| Micrometer      | Application metrics              |
+| Prometheus      | Monitoring                       |
+| JUnit           | Unit testing                     |
+| Mockito         | Mocking framework                |
+| Testcontainers  | Integration testing              |
+| Docker          | Containerization                 |
+| Makefile        | DevOps automation                |
+| JaCoCo          | Code coverage                    |
+
+---
+
+# Automation
+
+The project includes a **Makefile** to automate common DevOps tasks.
+
+Example commands:
+
+Build Docker image:
+
+```
 make build
 ```
 
-### GitHub Action
-
-Check out the official [Gitleaks GitHub Action](https://github.com/gitleaks/gitleaks-action)
+Push image to Docker Hub:
 
 ```
-name: gitleaks
-on: [pull_request, push, workflow_dispatch]
-jobs:
-  scan:
-    name: gitleaks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}} # Only required for Organizations, not personal accounts.
+make push
 ```
 
-### Pre-Commit
-
-1. Install pre-commit from https://pre-commit.com/#install
-2. Create a `.pre-commit-config.yaml` file at the root of your repository with the following content:
-
-   ```
-   repos:
-     - repo: https://github.com/gitleaks/gitleaks
-       rev: v8.16.1
-       hooks:
-         - id: gitleaks
-   ```
-
-   for a [native execution of GitLeaks](https://github.com/zricethezav/gitleaks/releases) or use the [`gitleaks-docker` pre-commit ID](https://github.com/zricethezav/gitleaks/blob/master/.pre-commit-hooks.yaml) for executing GitLeaks using the [official Docker images](#docker)
-
-3. Auto-update the config to the latest repos' versions by executing `pre-commit autoupdate`
-4. Install with `pre-commit install`
-5. Now you're all set!
+Run full pipeline:
 
 ```
-➜ git commit -m "this commit contains a secret"
-Detect hardcoded secrets.................................................Failed
+make up
 ```
 
-Note: to disable the gitleaks pre-commit hook you can prepend `SKIP=gitleaks` to the commit command
-and it will skip running gitleaks
+The pipeline performs:
+
+1. Build Docker image
+2. Authenticate with Docker Hub
+3. Push image to registry
+4. Configure environment secrets
+
+This simplifies deployment workflows.
+
+---
+
+# Running the Project
+
+### Clone the repository
 
 ```
-➜ SKIP=gitleaks git commit -m "skip gitleaks check"
-Detect hardcoded secrets................................................Skipped
+git clone https://github.com/GiovanaBorges/Booking-api.git
 ```
 
-## Usage
+### Run the application
 
 ```
-Usage:
-  gitleaks [command]
-
-Available Commands:
-  completion  generate the autocompletion script for the specified shell
-  detect      detect secrets in code
-  help        Help about any command
-  protect     protect secrets in code
-  version     display gitleaks version
-
-Flags:
-  -b, --baseline-path string       path to baseline with issues that can be ignored
-  -c, --config string              config file path
-                                   order of precedence:
-                                   1. --config/-c
-                                   2. env var GITLEAKS_CONFIG
-                                   3. (--source/-s)/.gitleaks.toml
-                                   If none of the three options are used, then gitleaks will use the default config
-      --exit-code int              exit code when leaks have been encountered (default 1)
-  -h, --help                       help for gitleaks
-  -l, --log-level string           log level (trace, debug, info, warn, error, fatal) (default "info")
-      --max-target-megabytes int   files larger than this will be skipped
-      --no-color                   turn off color for verbose output
-      --no-banner                  suppress banner
-      --redact                     redact secrets from logs and stdout
-  -f, --report-format string       output format (json, csv, junit, sarif) (default "json")
-  -r, --report-path string         report file
-  -s, --source string              path to source (default ".")
-  -v, --verbose                    show verbose output from scan
-
-Use "gitleaks [command] --help" for more information about a command.
+mvn spring-boot:run
 ```
 
-### Commands
+---
 
-There are two commands you will use to detect secrets; `detect` and `protect`.
+# Running Tests
 
-#### Detect
-
-The `detect` command is used to scan repos, directories, and files. This command can be used on developer machines and in CI environments.
-
-When running `detect` on a git repository, gitleaks will parse the output of a `git log -p` command (you can see how this executed
-[here](https://github.com/zricethezav/gitleaks/blob/7240e16769b92d2a1b137c17d6bf9d55a8562899/git/git.go#L17-L25)).
-[`git log -p` generates patches](https://git-scm.com/docs/git-log#_generating_patch_text_with_p) which gitleaks will use to detect secrets.
-You can configure what commits `git log` will range over by using the `--log-opts` flag. `--log-opts` accepts any option for `git log -p`.
-For example, if you wanted to run gitleaks on a range of commits you could use the following command: `gitleaks detect --source . --log-opts="--all commitA..commitB"`.
-See the `git log` [documentation](https://git-scm.com/docs/git-log) for more information.
-
-You can scan files and directories by using the `--no-git` option.
-
-If you want to run only specific rules you can do so by using the `--enable-rule` option (with a rule ID as a parameter), this flag can be used multiple times. For example: `--enable-rule=atlassian-api-token` will only apply that rule. You can find a list of rules [here](config/gitleaks.toml).
-
-#### Protect
-
-The `protect` command is used to scan uncommitted changes in a git repo. This command should be used on developer machines in accordance with
-[shifting left on security](https://cloud.google.com/architecture/devops/devops-tech-shifting-left-on-security).
-When running `protect` on a git repository, gitleaks will parse the output of a `git diff` command (you can see how this executed
-[here](https://github.com/zricethezav/gitleaks/blob/7240e16769b92d2a1b137c17d6bf9d55a8562899/git/git.go#L48-L49)). You can set the
-`--staged` flag to check for changes in commits that have been `git add`ed. The `--staged` flag should be used when running Gitleaks
-as a pre-commit.
-
-**NOTE**: the `protect` command can only be used on git repos, running `protect` on files or directories will result in an error message.
-
-### Creating a baseline
-
-When scanning large repositories or repositories with a long history, it can be convenient to use a baseline. When using a baseline,
-gitleaks will ignore any old findings that are present in the baseline. A baseline can be any gitleaks report. To create a gitleaks report, run gitleaks with the `--report-path` parameter.
+Run unit tests:
 
 ```
-gitleaks detect --report-path gitleaks-report.json # This will save the report in a file called gitleaks-report.json
+mvn clean test
 ```
 
-Once as baseline is created it can be applied when running the detect command again:
+Generate coverage report:
 
 ```
-gitleaks detect --baseline-path gitleaks-report.json --report-path findings.json
+mvn clean verify
 ```
 
-After running the detect command with the --baseline-path parameter, report output (findings.json) will only contain new issues.
-
-### Verify Findings
-
-You can verify a finding found by gitleaks using a `git log` command.
-Example output:
+JaCoCo report will be generated at:
 
 ```
-Finding:     aws_secret="AKIAIMNOJVGFDXXXE4OA"
-RuleID:      aws-access-token
-Secret       AKIAIMNOJVGFDXXXE4OA
-Entropy:     3.65
-File:        checks_test.go
-Line:        37
-Commit:      ec2fc9d6cb0954fb3b57201cf6133c48d8ca0d29
-Author:      Zachary Rice
-Email:       z@email.com
-Date:        2018-01-28T17:39:00Z
-Fingerprint: ec2fc9d6cb0954fb3b57201cf6133c48d8ca0d29:checks_test.go:aws-access-token:37
+target/site/jacoco/index.html
 ```
 
-We can use the following format to verify the leak:
+---
+
+# Integration Testing
+
+The project uses **Testcontainers** to run integration tests with real infrastructure.
+
+During tests:
+
+* a RabbitMQ container is started automatically
+* the application connects to it
+* integration tests run against the real message broker
+
+This ensures the application behaves correctly with real infrastructure instead of relying only on mocks.
+
+---
+
+# Example API Flow
+
+Create booking request:
 
 ```
-git log -L {StartLine,EndLine}:{File} {Commit}
+POST /bookings
 ```
 
-So in this example it would look like:
+Example result:
 
 ```
-git log -L 37,37:checks_test.go ec2fc9d6cb0954fb3b57201cf6133c48d8ca0d29
+Booking stored
+      ↓
+BookingCreatedEvent published
+      ↓
+RabbitMQ
+      ↓
+Notification Service consumes event
+      ↓
+User receives notification
 ```
 
-Which gives us:
+---
 
-```
-commit ec2fc9d6cb0954fb3b57201cf6133c48d8ca0d29
-Author: zricethezav <thisispublicanyways@gmail.com>
-Date:   Sun Jan 28 17:39:00 2018 -0500
+# Future Improvements
 
-    [update] entropy check
+Potential improvements for the system:
 
-diff --git a/checks_test.go b/checks_test.go
---- a/checks_test.go
-+++ b/checks_test.go
-@@ -28,0 +37,1 @@
-+               "aws_secret= \"AKIAIMNOJVGFDXXXE4OA\"":          true,
+* Outbox Pattern for guaranteed event delivery
+* Distributed tracing using OpenTelemetry
+* Load testing using k6
+* Monitoring dashboards using Grafana
 
-```
+---
 
-## Pre-Commit hook
+# Author
 
-You can run Gitleaks as a pre-commit hook by copying the example `pre-commit.py` script into
-your `.git/hooks/` directory.
+**Giovana Borges**
 
-## Configuration
+Backend Developer
 
-Gitleaks offers a configuration format you can follow to write your own secret detection rules:
-
-```toml
-# Title for the gitleaks configuration file.
-title = "Gitleaks title"
-
-# Extend the base (this) configuration. When you extend a configuration
-# the base rules take precedence over the extended rules. I.e., if there are
-# duplicate rules in both the base configuration and the extended configuration
-# the base rules will override the extended rules.
-# Another thing to know with extending configurations is you can chain together
-# multiple configuration files to a depth of 2. Allowlist arrays are appended
-# and can contain duplicates.
-# useDefault and path can NOT be used at the same time. Choose one.
-[extend]
-# useDefault will extend the base configuration with the default gitleaks config:
-# https://github.com/zricethezav/gitleaks/blob/master/config/gitleaks.toml
-useDefault = true
-# or you can supply a path to a configuration. Path is relative to where gitleaks
-# was invoked, not the location of the base config.
-path = "common_config.toml"
-
-# An array of tables that contain information that define instructions
-# on how to detect secrets
-[[rules]]
-
-# Unique identifier for this rule
-id = "awesome-rule-1"
-
-# Short human readable description of the rule.
-description = "awesome rule 1"
-
-# Golang regular expression used to detect secrets. Note Golang's regex engine
-# does not support lookaheads.
-regex = '''one-go-style-regex-for-this-rule'''
-
-# Golang regular expression used to match paths. This can be used as a standalone rule or it can be used
-# in conjunction with a valid `regex` entry.
-path = '''a-file-path-regex'''
-
-# Array of strings used for metadata and reporting purposes.
-tags = ["tag","another tag"]
-
-# Int used to extract secret from regex match and used as the group that will have
-# its entropy checked if `entropy` is set.
-secretGroup = 3
-
-# Float representing the minimum shannon entropy a regex group must have to be considered a secret.
-entropy = 3.5
-
-# Keywords are used for pre-regex check filtering. Rules that contain
-# keywords will perform a quick string compare check to make sure the
-# keyword(s) are in the content being scanned. Ideally these values should
-# either be part of the idenitifer or unique strings specific to the rule's regex
-# (introduced in v8.6.0)
-keywords = [
-  "auth",
-  "password",
-  "token",
-]
-
-# You can include an allowlist table for a single rule to reduce false positives or ignore commits
-# with known/rotated secrets
-[rules.allowlist]
-description = "ignore commit A"
-commits = [ "commit-A", "commit-B"]
-paths = [
-  '''go\.mod''',
-  '''go\.sum'''
-]
-# note: (rule) regexTarget defaults to check the _Secret_ in the finding.
-# if regexTarget is not specified then _Secret_ will be used.
-# Acceptable values for regexTarget are "match" and "line"
-regexTarget = "match"
-regexes = [
-  '''process''',
-  '''getenv''',
-]
-# note: stopwords targets the extracted secret, not the entire regex match
-# like 'regexes' does. (stopwords introduced in 8.8.0)
-stopwords = [
-  '''client''',
-  '''endpoint''',
-]
-
-
-# This is a global allowlist which has a higher order of precedence than rule-specific allowlists.
-# If a commit listed in the `commits` field below is encountered then that commit will be skipped and no
-# secrets will be detected for said commit. The same logic applies for regexes and paths.
-[allowlist]
-description = "global allow list"
-commits = [ "commit-A", "commit-B", "commit-C"]
-paths = [
-  '''gitleaks\.toml''',
-  '''(.*?)(jpg|gif|doc)'''
-]
-
-# note: (global) regexTarget defaults to check the _Secret_ in the finding.
-# if regexTarget is not specified then _Secret_ will be used.
-# Acceptable values for regexTarget are "match" and "line"
-regexTarget = "match"
-
-regexes = [
-  '''219-09-9999''',
-  '''078-05-1120''',
-  '''(9[0-9]{2}|666)-\d{2}-\d{4}''',
-]
-# note: stopwords targets the extracted secret, not the entire regex match
-# like 'regexes' does. (stopwords introduced in 8.8.0)
-stopwords = [
-  '''client''',
-  '''endpoint''',
-]
-```
-
-Refer to the default [gitleaks config](https://github.com/zricethezav/gitleaks/blob/master/config/gitleaks.toml) for examples or follow the [contributing guidelines](https://github.com/gitleaks/gitleaks/blob/master/CONTRIBUTING.md) if you would like to contribute to the default configuration. Additionally, you can check out [this gitleaks blog post](https://blog.gitleaks.io/stop-leaking-secrets-configuration-2-3-aeed293b1fbf) which covers advanced configuration setups.
-
-### Additional Configuration
-
-#### gitleaks:allow
-
-If you are knowingly committing a test secret that gitleaks will catch you can add a `gitleaks:allow` comment to that line which will instruct gitleaks
-to ignore that secret. Ex:
-
-```
-class CustomClass:
-    discord_client_secret = '8dyfuiRyq=vVc3RRr_edRk-fK__JItpZ'  #gitleaks:allow
-
-```
-
-#### .gitleaksignore
-
-You can ignore specific findings by creating a `.gitleaksignore` file at the root of your repo. In release v8.10.0 Gitleaks added a `Fingerprint` value to the Gitleaks report. Each leak, or finding, has a Fingerprint that uniquely identifies a secret. Add this fingerprint to the `.gitleaksignore` file to ignore that specific secret. See Gitleaks' [.gitleaksignore](https://github.com/zricethezav/gitleaks/blob/master/.gitleaksignore) for an example. Note: this feature is experimental and is subject to change in the future.
-
-## Sponsorships
-<p align="left">
-	<h3><a href="https://coderabbit.ai/?utm_source=oss&utm_medium=sponsorship&utm_campaign=gitleaks">coderabbit.ai</h3>
-	  <a href="https://coderabbit.ai/?utm_source=oss&utm_medium=sponsorship&utm_campaign=gitleaks">
-		  <img alt="CodeRabbit.ai Sponsorship" src="https://github.com/gitleaks/gitleaks/assets/15034943/76c30a85-887b-47ca-9956-17a8e55c6c41" width=200>
-	  </a>
-</p>
-<p align="left">
-	  <a href="https://www.tines.com/?utm_source=oss&utm_medium=sponsorship&utm_campaign=gitleaks">
-		  <img alt="Tines Sponsorship" src="https://user-images.githubusercontent.com/15034943/146411864-4878f936-b4f7-49a0-b625-f9f40c704bfa.png" width=200>
-	  </a>
-  </p>
-
-
-## Exit Codes
-
-You can always set the exit code when leaks are encountered with the --exit-code flag. Default exit codes below:
-
-```
-0 - no leaks present
-1 - leaks or error encountered
-126 - unknown flag
-```
+GitHub
+https://github.com/GiovanaBorges
