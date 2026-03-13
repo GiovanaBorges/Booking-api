@@ -19,9 +19,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import com.booking.booking.DTO.UserResponseDTO;
+import com.booking.booking.DTO.responses.UserResponseDTO;
 import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.events.usersEvents.UsersCreatedEvent;
+import com.booking.booking.mappers.UserMapper;
+import com.booking.booking.mappers.events.UserEventMapper;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.UsersRepository;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerUsers;
@@ -37,6 +39,12 @@ public class UsersServiceTest {
 
     @InjectMocks
     private UsersServices service;
+
+    @Mock
+    private UserMapper mapperUser;
+
+    @Mock
+    private UserEventMapper userEventMapper;
 
     @Test
     void shouldReturnExistingUser(){
@@ -56,8 +64,17 @@ public class UsersServiceTest {
             .createdAt(LocalDateTime.now())
             .build();
 
+        UserResponseDTO dto =
+                new UserResponseDTO(1L, "user1", "email@email.com", RolesENUM.PROVIDER, existingUser.getCreatedAt());
+
         when(repository.findByKeycloakId("keycloakId123"))
             .thenReturn(Optional.of(existingUser));
+
+        when(repository.findByKeycloakId("keycloakId123"))
+            .thenReturn(Optional.of(existingUser));
+
+        when(mapperUser.toResponse(existingUser))
+                .thenReturn(dto);
 
         UserResponseDTO responseDTO = service.createOrGet(jwt);
 
@@ -95,6 +112,23 @@ public class UsersServiceTest {
                 u.setId(1L);
                 return u;
             });
+
+        UsersCreatedEvent event = UsersCreatedEvent.builder()
+            .id(1L)
+            .name("user1")
+            .roles(RolesENUM.ADMIN.toString())
+            .createdAt(LocalDateTime.now())
+            .build();
+            
+
+        when(userEventMapper.toCreateEvent(any()))
+                .thenReturn(event);
+
+        UserResponseDTO dto =
+                new UserResponseDTO(1L, "user1", "email@email.com", RolesENUM.ADMIN, LocalDateTime.now());
+
+        when(mapperUser.toResponse(any()))
+                .thenReturn(dto);
 
         UserResponseDTO responseDTO = service.createOrGet(jwt);
 
