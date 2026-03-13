@@ -1,5 +1,6 @@
 # Carrega variáveis do .env
 -include .env
+-include .env.secrets
 export
 
 IMAGE_FULL=$(DOCKER_USER)/$(IMAGE_NAME):$(TAG)
