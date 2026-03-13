@@ -1,11 +1,10 @@
 package com.booking.booking.services;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -21,10 +20,15 @@ import com.booking.booking.exceptions.ApiException;
 import com.booking.booking.mappers.BookingMapper;
 import com.booking.booking.mappers.events.BookingEventMapper;
 import com.booking.booking.models.Bookings;
-import com.booking.booking.models.Users;
 import com.booking.booking.repositories.BookingsRepository;
 import com.booking.booking.repositories.UsersRepository;
+import com.booking.booking.services.helpers.BookingsResolver;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerBookings;
+
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 
 @Service
 public class BookingsServices {
@@ -43,7 +47,15 @@ public class BookingsServices {
     @Autowired
     private BookingEventMapper bookingEventMapper;
 
-    
+    @Autowired
+    private BookingsResolver bookingsResolver;
+
+    private static final Logger LOG =
+    LoggerFactory.getLogger(BookingsServices.class);
+
+    @Bulkhead(name = "bookingsBulkhead")
+    @CircuitBreaker(name = "bookingsCircuitBreaker", fallbackMethod = "handleBookingsEventFailure")
+    @RateLimiter(name = "bookingsRateLimiter")
     @CacheEvict(value = "bookings", allEntries = true)
     public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO){
         
@@ -57,17 +69,8 @@ public class BookingsServices {
                 throw new ApiException("THIS TIME SLOT IS ALREADY BOOKED",
                  HttpStatus.CONFLICT);
             }
-        
-        
-        Users provider = usersRepository.findById(requestDTO.providerId())
-            .orElseThrow(() -> new ApiException("PROVIDER NOT FOUND",HttpStatus.NOT_FOUND));
-
-        Users customer = usersRepository.findById(requestDTO.customerId())
-            .orElseThrow(() -> new ApiException("CUSTOMER NOT FOUND", HttpStatus.NOT_FOUND));
-        
-        Bookings booking = bookingMapper.toEntity(requestDTO);
-        booking.setProvider(provider);
-        booking.setCustomer(customer);
+     
+        Bookings booking = bookingMapper.toEntity(requestDTO, usersRepository);
         
         Bookings bookingSaved = bookingsRepository.save(booking);
 
@@ -78,50 +81,44 @@ public class BookingsServices {
         return bookingMapper.toResponse(bookingSaved);
     }
 
+    @Bulkhead(name = "bookingsBulkhead")
+    @CircuitBreaker(name = "bookingsCircuitBreaker", fallbackMethod = "handleBookingsEventFailure")
+    @Retry(name = "bookingsRetry", fallbackMethod = "handleBookingsEventFailure")
+    @RateLimiter(name = "bookingsRateLimiter")
     @Cacheable(value = "bookings", key = "#id")
     public BookingsResponseDTO getBookingById(Long id){
-        Optional<Bookings> bookingsFound = bookingsRepository.findById(id);
-        if(bookingsFound.isEmpty()){
-            throw new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND);
-        }
+        Bookings bookingsFound = bookingsResolver.resolveBookingById(id)
+            .orElseThrow(() -> new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND));
 
-        return bookingMapper.toResponse(bookingsFound.get());
+        return bookingMapper.toResponse(bookingsFound);
     }
 
-    
+    @Bulkhead(name = "bookingsBulkhead")
+    @CircuitBreaker(name = "bookingsCircuitBreaker", fallbackMethod = "handleBookingsEventFailure")
+    @RateLimiter(name = "bookingsRateLimiter")
     @CacheEvict(value = "bookings", allEntries = true)
     public BookingsResponseDTO deleteBooking(Long id){
-        Optional<Bookings> bookingsFound = bookingsRepository.findById(id);
-        if(bookingsFound.isEmpty()){
-            throw new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND);
-        }
-
+        Bookings bookingsFound = bookingsResolver.resolveBookingById(id)
+                        .orElseThrow(() -> new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND));
         bookingsRepository.deleteById(id);
 
-        BookingDeletedEvent bookingDeletedEvent = bookingEventMapper.toDeletedEvent(bookingsFound.get());
+        BookingDeletedEvent bookingDeletedEvent = bookingEventMapper.toDeletedEvent(bookingsFound);
 
         messageProducerBookings.sendBookingDeleteEvent(bookingDeletedEvent);
             
-        return bookingMapper.toResponse(bookingsFound.get());
+        return bookingMapper.toResponse(bookingsFound);
     }
 
+    @Bulkhead(name = "bookingsBulkhead")
+    @CircuitBreaker(name = "bookingsCircuitBreaker", fallbackMethod = "handleBookingsEventFailure")
+    @RateLimiter(name = "bookingsRateLimiter")
     public BookingsResponseDTO updateBooking(Long id,BookingsRequestDTO bookingsRequestDTO){
         
-        Bookings booking = bookingsRepository.findById(id)
-        .orElseThrow(() -> new ApiException(
-            "BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND));
+        Optional<Bookings> booking = bookingsResolver.resolveBookingById(id);
 
-        Users provider = usersRepository.findById(bookingsRequestDTO.providerId())
-            .orElseThrow(() -> new ApiException("PROVIDER NOT FOUND",HttpStatus.NOT_FOUND));
-
-        Users customer = usersRepository.findById(bookingsRequestDTO.customerId())
-            .orElseThrow(() -> new ApiException("CUSTOMER NOT FOUND", HttpStatus.NOT_FOUND));
-
-        bookingMapper.updateEntity(bookingsRequestDTO,booking);
-        booking.setProvider(provider);
-        booking.setCustomer(customer);
+        bookingMapper.updateEntity(bookingsRequestDTO,booking.get(),usersRepository);
         
-        Bookings saved = bookingsRepository.save(booking);
+        Bookings saved = bookingsRepository.save(booking.get());
 
         BookingUpdatedEvent event = bookingEventMapper.toUpdatedEvent(saved);
 
@@ -130,16 +127,48 @@ public class BookingsServices {
         return bookingMapper.toResponse(saved);
     }
 
+    @Bulkhead(name = "bookingsBulkhead")
+    @CircuitBreaker(name = "bookingsCircuitBreaker", fallbackMethod = "handleBookingsEventFailure")
+    @Retry(name = "bookingsRetry", fallbackMethod = "handleBookingsEventFailure")
+    @RateLimiter(name = "bookingsRateLimiter")
     @Cacheable(value = "bookings", key = "'all'")
     public List<BookingsResponseDTO> getAllBookings(){
-        List<Bookings> bookingsFound = bookingsRepository.findAll();
-        if(bookingsFound.isEmpty()){
-            throw new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND);
-        }
-
-        return bookingsFound.stream()
-            .map(booking -> bookingMapper.toResponse(booking))
+        return bookingsRepository.findAll()
+            .stream()
+            .map(bookingMapper::toResponse)
             .toList();
 
     }   
+
+    // ============================
+    // FALLBACK METHODS
+    // ============================
+
+    private RuntimeException serviceUnavailable(Throwable t){
+        LOG.error("Booking service fallback triggered", t);
+        return new ApiException(
+            "BOOKING SERVICE TEMPORARILY UNAVAILABLE",
+            HttpStatus.SERVICE_UNAVAILABLE
+        );
+    }
+
+    // saveBooking
+    public BookingsResponseDTO handleBookingsEventFailure(BookingsRequestDTO dto, Throwable t){
+        throw serviceUnavailable(t);
+    }
+
+    // getBookingById e deleteBooking
+    public BookingsResponseDTO handleBookingsEventFailure(Long id, Throwable t){
+        throw serviceUnavailable(t);
+    }
+
+    // updateBooking
+    public BookingsResponseDTO handleBookingsEventFailure(Long id, BookingsRequestDTO dto, Throwable t){
+        throw serviceUnavailable(t);
+    }
+
+    // getAllBookings
+    public List<BookingsResponseDTO> handleBookingsEventFailure(Throwable t){
+        throw serviceUnavailable(t);
+    }
 }
