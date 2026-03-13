@@ -1,9 +1,10 @@
 package com.booking.booking.config.rabbitmq;
 
-import java.security.Provider.Service;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
+@Component
 @ConfigurationProperties(prefix = "rabbitmq")
 public class RabbitMQProperties {
     private ServiceConfig booking;
