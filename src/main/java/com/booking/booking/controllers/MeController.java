@@ -5,7 +5,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.booking.booking.DTO.UserResponseDTO;
+import com.booking.booking.DTO.responses.UserResponseDTO;
 import com.booking.booking.services.UsersServices;
 import org.springframework.web.bind.annotation.GetMapping;
 
