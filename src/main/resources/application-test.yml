@@ -5,6 +5,12 @@ spring:
     username: sa
     password:
 
+    
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+
   jpa:
     hibernate:
       ddl-auto: create-drop
