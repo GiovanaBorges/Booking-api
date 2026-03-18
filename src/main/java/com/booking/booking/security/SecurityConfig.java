@@ -2,6 +2,7 @@ package com.booking.booking.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -28,7 +29,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/users/me").authenticated()
-                .requestMatchers("/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/users/edit/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/bookings/**").hasRole("USER")
+                .requestMatchers(HttpMethod.GET, "/bookings/**").hasAnyRole("USER", "PROVIDER")
+                .requestMatchers(HttpMethod.DELETE, "/bookings/**").hasRole("USER")
+                .requestMatchers("/provider-availability/allproviders").hasRole("USER")
+                .requestMatchers("/provider-availability/*").hasRole("PROVIDER")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
