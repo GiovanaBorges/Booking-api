@@ -14,14 +14,11 @@ public class UserResolver {
     @Autowired
     private UsersRepository usersRepository;
 
-    public Users resolveCustomerById(Long id) {
+    public Users resolveUserById(Long id) {
         return usersRepository.findById(id)
-            .orElseThrow(() -> new ApiException("CUSTOMER NOT FOUND", HttpStatus.NOT_FOUND));
+            .orElseThrow(() -> new ApiException("USER NOT FOUND", HttpStatus.NOT_FOUND));
 
     }
     
-    public Users resolveProviderById(Long id) {
-        return usersRepository.findById(id)
-            .orElseThrow(() -> new ApiException("PROVIDER NOT FOUND", HttpStatus.NOT_FOUND));
-}
+   
 }
