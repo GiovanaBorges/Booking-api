@@ -51,6 +51,12 @@ public class Bookings {
     @Enumerated(EnumType.STRING)
     private StatusENUM status;
 
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
