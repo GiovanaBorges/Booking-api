@@ -63,7 +63,7 @@ public class ProviderAvailabilityservices {
     @RateLimiter(name = "providerAvailabilityRateLimiter")
     public ProviderAvailabilityResponseDTO saveProviderAvailability(ProviderAvailabilityRequestDTO requestDTO){
         
-        Users provider = userResolver.resolveProviderById(requestDTO.providerId());
+        Users provider = userResolver.resolveUserById(requestDTO.providerId());
 
         ProviderAvailability providerToBeSaved = providerAvailabilityMapper.toEntity(requestDTO);
         providerToBeSaved.setProvider(provider);
