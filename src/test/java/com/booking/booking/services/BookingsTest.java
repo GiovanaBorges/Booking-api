@@ -95,6 +95,8 @@ public class BookingsTest {
             .id(1L)
             .customer(user)
             .provider(provider)
+            .title("Test Booking")
+            .description("Description Booking")
             .startsTs(LocalDateTime.of(2026,1,10,10,0))
             .endTs(LocalDateTime.of(2026,1,10,11,0))
             .build();
@@ -104,7 +106,9 @@ public class BookingsTest {
                 user.getId(),
                 LocalDateTime.of(2026,1,10,10,0),
                 LocalDateTime.of(2026,1,11,11,0),
-                StatusENUM.CONFIRMED
+                StatusENUM.CONFIRMED,
+                "Test Booking",
+                "Description Booking"
         );
 
     BookingsResponseDTO response = new BookingsResponseDTO(
@@ -114,6 +118,8 @@ public class BookingsTest {
             LocalDateTime.of(2026,1,10,10,0),
             LocalDateTime.of(2026,1,10,11,0),
             StatusENUM.CONFIRMED,
+            "Test Booking",
+            "Description Booking",
             LocalDateTime.of(2026,1,10,11,0),
             LocalDateTime.of(2026,1,10,11,0)
     );
@@ -179,7 +185,10 @@ public class BookingsTest {
                 booking.getCustomer().getId(),
                 booking.getStartsTs(),
                 booking.getEndTs(),
-                booking.getStatus());
+                booking.getStatus(),
+                booking.getTitle(),
+                booking.getDescription()
+        );
 
 
         // ==== MOCKS ====
@@ -215,6 +224,8 @@ public class BookingsTest {
                 b.getStartsTs(),
                 b.getEndTs(),
                 b.getStatus(),
+                b.getTitle(),
+                b.getDescription(),
                 LocalDateTime.now(),
                 LocalDateTime.now()
             );
@@ -282,6 +293,8 @@ public class BookingsTest {
                 b.getStartsTs(),
                 b.getEndTs(),
                 b.getStatus(),
+                b.getTitle(),
+                b.getDescription(),
                 LocalDateTime.now(),
                 LocalDateTime.now()
             );
@@ -360,6 +373,8 @@ public class BookingsTest {
             booking.getStartsTs(),
             booking.getEndTs(),
             booking.getStatus(),
+            booking.getTitle(),
+            booking.getDescription(),
             LocalDateTime.now(),
             LocalDateTime.now()
         ));
@@ -426,7 +441,9 @@ public class BookingsTest {
                booking.getCustomer().getId(),
                booking.getStartsTs(),
                booking.getEndTs(),
-               booking.getStatus()
+               booking.getStatus(),
+               booking.getTitle(),
+               booking.getDescription()
         );
 
         when(bookingsResolver.resolveBookingById(1L))
@@ -446,6 +463,8 @@ public class BookingsTest {
                 booking.getStartsTs(),
                 booking.getEndTs(),
                 booking.getStatus(),
+                booking.getTitle(),
+                booking.getDescription(),
                 LocalDateTime.now(),
                 LocalDateTime.now()
             ));
