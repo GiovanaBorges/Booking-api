@@ -89,7 +89,7 @@ public class ProviderAvailabilityServicesTest {
             .provider(user)
             .build();
 
-    lenient().when(userResolver.resolveProviderById(any()))
+    lenient().when(userResolver.resolveUserById(any()))
             .thenReturn(user);
 
     lenient().when(providerAvailabilityResolver.resolveProviderById(any()))
