@@ -11,6 +11,8 @@ public record BookingsResponseDTO(
     LocalDateTime startsTs,
     LocalDateTime endTs,
     StatusENUM status,
+    String title,
+    String description,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
     ) {}
