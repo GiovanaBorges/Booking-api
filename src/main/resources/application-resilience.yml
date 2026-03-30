@@ -1,0 +1,63 @@
+
+
+resilience4j:
+
+  circuitbreaker:
+    instances:
+      bookingsCircuitBreaker:
+        sliding-window-size: 30
+        minimum-number-of-calls: 15
+        failure-rate-threshold: 70
+        slow-call-rate-threshold: 80
+        slow-call-duration-threshold: 5s
+        wait-duration-in-open-state: 10s
+      userCircuitBreaker:
+        sliding-window-size: 30
+        minimum-number-of-calls: 15
+        failure-rate-threshold: 70
+        slow-call-rate-threshold: 80
+        slow-call-duration-threshold: 5s
+        wait-duration-in-open-state: 10s
+      providerAvailabilityCircuitBreaker:
+        sliding-window-size: 30
+        minimum-number-of-calls: 15
+        failure-rate-threshold: 70
+        slow-call-rate-threshold: 80
+        slow-call-duration-threshold: 5s
+        wait-duration-in-open-state: 10s
+
+
+  bulkhead:
+    instances:
+      bookingsBulkhead:
+        max-concurrent-calls: 5 
+        max-wait-duration: 0s
+      userBulkhead:
+        max-concurrent-calls: 5
+        max-wait-duration: 0s
+      providerAvailabilityBulkhead:
+        max-concurrent-calls: 5
+        max-wait-duration: 0s
+  ratelimiter:
+    instances:
+      bookingsRateLimiter:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+        timeout-duration: 0s
+      userRateLimiter:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+      providerAvailabilityRateLimiter:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+  retry:
+    instances:
+      bookingsRetry:
+        max-attempts: 2
+        wait-duration: 200ms
+      userRetry:
+        max-attempts: 2
+        wait-duration: 200ms
+      providerAvailabilityRetry:
+        max-attempts: 2
+        wait-duration: 200ms 
