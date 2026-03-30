@@ -6,6 +6,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.booking.booking.DTO.EventDTO;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityCreatedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityDeletedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityUpdatedEvent;
@@ -30,18 +31,22 @@ public class MessageProducerProvider {
     @Value("${rabbitmq.provider.routing.deleted}")
     private String deletedRK;
 
-    public void sendProviderCreateEvent(ProviderAvailabilityCreatedEvent event){
-        rabbitTemplate.convertAndSend(providerExchange,createdRK,event);
-        log.info("📤 [PRODUCER] Evento enviado para RabbitMQ: {}", event);
+    public void sendEvent(EventDTO<?> event) {
+
+        String routingKey = resolveRoutingKey(event.type().toString());
+
+        rabbitTemplate.convertAndSend(providerExchange, routingKey, event);
+
+        log.info("📤 Evento enviado | type={} routingKey={} recipients={}",
+                event.type(), routingKey, event.recipients());
     }
 
-    public void sendProviderUpdateEvent(ProviderAvailabilityUpdatedEvent event){
-        rabbitTemplate.convertAndSend(providerExchange,updatedRK,event);
-        log.info("📤 [PRODUCER] Evento enviado para RabbitMQ: {}", event);
-    }
-
-    public void sendProviderDeleteEvent(ProviderAvailabilityDeletedEvent event){
-        rabbitTemplate.convertAndSend(providerExchange,deletedRK,event);
-        log.info("📤 [PRODUCER] Evento enviado para RabbitMQ: {}", event);
+    private String resolveRoutingKey(String type) {
+        return switch (type) {
+            case "PROVIDER_CREATED" -> createdRK;
+            case "PROVIDER_UPDATED" -> updatedRK;
+            case "PROVIDER_DELETED" -> deletedRK;
+            default -> throw new IllegalArgumentException("Tipo de evento desconhecido: " + type);
+        };
     }
 }
