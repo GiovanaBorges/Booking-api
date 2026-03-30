@@ -2,11 +2,17 @@ package com.booking.booking.DTO.requests;
 
 import java.time.LocalTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 
 public record ProviderAvailabilityRequestDTO(
-        int day_of_week,
+        @JsonProperty("day_of_week")    
+        int dayOfWeek,
+    
+        @JsonProperty("start_time")
         LocalTime startTime,
-        LocalTime end_time,
-        Long providerId
+
+        @JsonProperty("end_time")
+        LocalTime endTime
     ){}
 
