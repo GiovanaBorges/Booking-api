@@ -51,6 +51,11 @@ public class UserFallbackFactory {
         return Collections.emptyList(); // Retorna lista vazia
     }
 
+    // fallback para get all providers
+    public List<UserResponseDTO> createFallbackForGetAllProviders() {
+        return Collections.emptyList(); // Retorna lista vazia
+    }
+
     // fallback para editUser com DTO (pode usar o mesmo createFallback(id))
     public UserResponseDTO createFallbackForEdit(Long id) {
         return createFallback(id);
