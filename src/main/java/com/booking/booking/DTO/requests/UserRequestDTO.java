@@ -14,7 +14,7 @@ import jakarta.persistence.Enumerated;
 
 public record UserRequestDTO(
     String name,
-    String Description,
+    String description,
     String linkedinProfile,
     String githubProfile,
     String portfolioUrl,
