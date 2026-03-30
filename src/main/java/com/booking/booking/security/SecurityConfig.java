@@ -28,13 +28,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/provideravailability/**").authenticated()
                 .requestMatchers("/users/me").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/users/edit/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/bookings/**").hasRole("USER")
-                .requestMatchers(HttpMethod.GET, "/bookings/**").hasAnyRole("USER", "PROVIDER")
-                .requestMatchers(HttpMethod.DELETE, "/bookings/**").hasRole("USER")
-                .requestMatchers("/provider-availability/allproviders").hasRole("USER")
-                .requestMatchers("/provider-availability/*").hasRole("PROVIDER")
+                .requestMatchers("/bookings/**").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/users/edit/**").authenticated()  
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
@@ -49,4 +46,6 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(new KeycloakRoleConverter());
         return converter;
     }
+
+    
 }
