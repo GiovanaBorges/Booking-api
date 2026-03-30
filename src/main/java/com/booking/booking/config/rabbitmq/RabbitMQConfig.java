@@ -4,12 +4,19 @@ import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.Jackson2JavaTypeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,8 +29,6 @@ public class RabbitMQConfig {
 
     @Autowired
     private RabbitMQProperties props;
-   
-
 
     // ===========
     // buildqueue helper
@@ -40,53 +45,53 @@ public class RabbitMQConfig {
     // Booking
     // ===============
     @Bean
-    TopicExchange bookingExchange(){
+    TopicExchange bookingExchange() {
         return new TopicExchange(props.getBooking().getExchange());
     }
 
     @Bean
-    Queue bookingCreatedQueue(){
-        return buildQueue(props.getBooking().getQueue().getCreated(), 
-        props.getBooking().getDlq().getCreated());
+    Queue bookingCreatedQueue() {
+        return buildQueue(props.getBooking().getQueue().getCreated(),
+                props.getBooking().getDlq().getCreated());
     }
 
     @Bean
-    Queue bookingUpdatedQueue(){
-        return buildQueue(props.getBooking().getQueue().getUpdated(), 
-        props.getBooking().getDlq().getUpdated());
+    Queue bookingUpdatedQueue() {
+        return buildQueue(props.getBooking().getQueue().getUpdated(),
+                props.getBooking().getDlq().getUpdated());
     }
 
     @Bean
-    Queue bookingDeletedQueue(){
+    Queue bookingDeletedQueue() {
         return buildQueue(props.getBooking().getQueue().getDeleted(),
-        props.getBooking().getDlq().getDeleted());
+                props.getBooking().getDlq().getDeleted());
     }
 
     // ----------------------------------------
     // User QUEUE
     // ----------------------------------------
 
-    @Bean 
-    TopicExchange userExchange(){
+    @Bean
+    TopicExchange userExchange() {
         return new TopicExchange(props.getUsers().getExchange());
     }
 
     @Bean
-    Queue userCreatedQueue(){
+    Queue userCreatedQueue() {
         return buildQueue(props.getUsers().getQueue().getCreated(),
-        props.getUsers().getDlq().getCreated());
+                props.getUsers().getDlq().getCreated());
     }
 
     @Bean
-    Queue userUpdatedQueue(){
+    Queue userUpdatedQueue() {
         return buildQueue(props.getUsers().getQueue().getUpdated(),
-        props.getUsers().getDlq().getUpdated());
+                props.getUsers().getDlq().getUpdated());
     }
 
     @Bean
-    Queue userDeletedQueue(){
+    Queue userDeletedQueue() {
         return buildQueue(props.getUsers().getQueue().getDeleted(),
-        props.getUsers().getDlq().getDeleted());
+                props.getUsers().getDlq().getDeleted());
     }
 
     // ----------------------------------------
@@ -94,80 +99,78 @@ public class RabbitMQConfig {
     // ----------------------------------------
 
     @Bean
-    TopicExchange providerExchange(){
+    TopicExchange providerExchange() {
         return new TopicExchange(props.getProvider().getExchange());
     }
 
     @Bean
-    Queue providerCreatedQueue(){   
+    Queue providerCreatedQueue() {
         return buildQueue(props.getProvider().getQueue().getCreated(),
-        props.getProvider().getDlq().getCreated());
+                props.getProvider().getDlq().getCreated());
     }
 
     @Bean
-    Queue providerUpdatedQueue(){
+    Queue providerUpdatedQueue() {
         return buildQueue(props.getProvider().getQueue().getUpdated(),
-        props.getProvider().getDlq().getUpdated());
+                props.getProvider().getDlq().getUpdated());
     }
 
     @Bean
-    Queue providerDeletedQueue(){
+    Queue providerDeletedQueue() {
         return buildQueue(props.getProvider().getQueue().getDeleted(),
-        props.getProvider().getDlq().getDeleted());
+                props.getProvider().getDlq().getDeleted());
     }
-
 
     // ----------------------------------------
     // DLQs
     // ----------------------------------------
 
     @Bean
-    Queue bookingCreatedDlq(){
+    Queue bookingCreatedDlq() {
         return QueueBuilder.durable(props.getBooking().getDlq().getCreated()).build();
     }
 
     @Bean
-    Queue bookingUpdatedDlq(){
+    Queue bookingUpdatedDlq() {
         return QueueBuilder.durable(props.getBooking().getDlq().getUpdated()).build();
     }
 
     @Bean
-    Queue bookingDeletedDlq(){
+    Queue bookingDeletedDlq() {
         return QueueBuilder.durable(props.getBooking().getDlq().getDeleted()).build();
-    }   
-
+    }
 
     @Bean
-    Queue userCreatedDlq(){
+    Queue userCreatedDlq() {
         return QueueBuilder.durable(props.getUsers().getDlq().getCreated()).build();
     }
 
     @Bean
-    Queue userUpdatedDlq(){
+    Queue userUpdatedDlq() {
         return QueueBuilder.durable(props.getUsers().getDlq().getUpdated()).build();
-    }   
+    }
 
     @Bean
-    Queue userDeletedDlq(){
+    Queue userDeletedDlq() {
         return QueueBuilder.durable(props.getUsers().getDlq().getDeleted()).build();
-    }   
+    }
 
     @Bean
-    Queue providerCreatedDlq(){  
+    Queue providerCreatedDlq() {
         return QueueBuilder.durable(props.getProvider().getDlq().getCreated()).build();
-    }   
+    }
 
     @Bean
-    Queue providerUpdatedDlq(){
+    Queue providerUpdatedDlq() {
         return QueueBuilder.durable(props.getProvider().getDlq().getUpdated()).build();
     }
 
     @Bean
-    Queue providerDeletedDlq(){
+    Queue providerDeletedDlq() {
         return QueueBuilder.durable(props.getProvider().getDlq().getDeleted()).build();
     }
 
-     // ==============================
+    // ==============================
     // Bindings
     // ==============================
     // Booking
@@ -253,13 +256,29 @@ public class RabbitMQConfig {
                 .to(providerExchange)
                 .with(props.getProvider().getRouting().getDeleted());
     }
+
     // ==============================
-// 🔹 Conversor JSON (Jackson)
+    // 🔹 Conversor JSON (Jackson)
     // ==============================
     @Bean
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
-        log.info("Registrando Jackson2JsonMessageConverter para mensagens RabbitMQ");
-        return new Jackson2JsonMessageConverter();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
+
+        DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
+        typeMapper.setTrustedPackages("*"); // importante pra generics
+
+        converter.setAlwaysConvertToInferredType(true);
+        typeMapper.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.INFERRED);
+        converter.setJavaTypeMapper(typeMapper);
+
+        log.info("Jackson configurado com suporte a LocalDateTime + Generics");
+
+        return converter;
     }
 
     // ==============================
@@ -267,7 +286,7 @@ public class RabbitMQConfig {
     // ==============================
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
-                                         Jackson2JsonMessageConverter converter) {
+            Jackson2JsonMessageConverter converter) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
         template.setMessageConverter(converter);
         log.info("RabbitTemplate configurado com Jackson2JsonMessageConverter");
@@ -286,22 +305,20 @@ public class RabbitMQConfig {
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(converter);
 
-        // Evita reencaminhar mensagens falhas infinitamente
         factory.setDefaultRequeueRejected(false);
+        factory.setMissingQueuesFatal(false);
 
-        // Paralelismo
         factory.setConcurrentConsumers(1);
         factory.setMaxConcurrentConsumers(3);
 
-        // Retry automático
         factory.setAdviceChain(
                 RetryInterceptorBuilder.stateless()
                         .maxAttempts(3)
                         .backOffOptions(2000, 2.0, 10000)
-                        .recoverer((msg, cause) ->
-                                log.error("[DLQ] Mensagem movida após falhas permanentes. Causa: {}", cause.getMessage()))
-                        .build()
-        );
+                        .recoverer(
+                                (msg, cause) -> log.error("[DLQ] Mensagem falhou após retries: {}", cause.getMessage()))
+                        .build());
+
         return factory;
     }
 }
