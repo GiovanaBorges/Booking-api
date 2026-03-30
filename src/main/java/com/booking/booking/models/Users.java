@@ -52,7 +52,7 @@ public class Users {
     private RolesENUM roles;
 
     @Column(nullable = true)
-    private String Description;
+    private String description;
 
     @URL(message = "Linkedin inválido")
     @Column(nullable = true)

@@ -11,7 +11,7 @@ public record UserResponseDTO(
     String name,
     String email,
     RolesENUM roles,
-    String Description,
+    String description,
     String linkedinProfile,
     String githubProfile,
     String portfolioUrl,

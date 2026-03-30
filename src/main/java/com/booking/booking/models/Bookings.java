@@ -43,7 +43,7 @@ public class Bookings {
     private Users customer;
 
     @Column(name = "start_ts")
-    private LocalDateTime  startsTs;
+    private LocalDateTime  startTs;
 
     @Column(name = "end_ts")
     private LocalDateTime endTs;

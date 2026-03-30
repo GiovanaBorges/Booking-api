@@ -2,6 +2,7 @@ package com.booking.booking.models;
 
 import java.time.LocalTime;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -24,10 +25,13 @@ public class ProviderAvailability {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private int day_of_week; //--1==monday 7==sunday
+    @Column(name = "day_of_week")
+    private int dayOfWeek; //--1==monday 7==sunday
 
-    private LocalTime  start_time;
-    private LocalTime  end_time;
+    @Column(name = "start_time")
+    private LocalTime  startTime;
+    @Column(name = "end_time")
+    private LocalTime  endTime;
 
     @ManyToOne
     @JoinColumn(name = "provider_id")
