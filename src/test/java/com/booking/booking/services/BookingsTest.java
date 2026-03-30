@@ -4,9 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -16,16 +14,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 
 import com.booking.booking.DTO.requests.BookingsRequestDTO;
@@ -43,6 +38,7 @@ import com.booking.booking.models.Users;
 import com.booking.booking.repositories.BookingsRepository;
 import com.booking.booking.repositories.UsersRepository;
 import com.booking.booking.services.helpers.BookingsResolver;
+import com.booking.booking.services.helpers.UserResolver;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerBookings;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,6 +67,12 @@ public class BookingsTest {
     @Mock
     private BookingsResolver bookingsResolver;
 
+    @Mock
+    private AuthenticatedUserService authUserService;
+
+    @Mock
+    private UserResolver userResolver;
+
 
     @BeforeEach
     void setup() {
@@ -97,7 +99,7 @@ public class BookingsTest {
             .provider(provider)
             .title("Test Booking")
             .description("Description Booking")
-            .startsTs(LocalDateTime.of(2026,1,10,10,0))
+            .startTs(LocalDateTime.of(2026,1,10,10,0))
             .endTs(LocalDateTime.of(2026,1,10,11,0))
             .build();
 
@@ -175,7 +177,7 @@ public class BookingsTest {
 
         Bookings booking = Bookings.builder()
             .id(1L)
-            .startsTs(LocalDateTime.now())
+            .startTs(LocalDateTime.now())
             .customer(customer)
             .provider(provider)
             .build();
@@ -183,7 +185,7 @@ public class BookingsTest {
             BookingsRequestDTO request = new BookingsRequestDTO(
                 booking.getProvider().getId(),
                 booking.getCustomer().getId(),
-                booking.getStartsTs(),
+                booking.getStartTs(),
                 booking.getEndTs(),
                 booking.getStatus(),
                 booking.getTitle(),
@@ -202,13 +204,16 @@ public class BookingsTest {
             return b;
         });
 
+        when(userResolver.resolveUserById(any()))
+    .thenReturn(provider);
+
     when(bookingsMapper.toEntity(any(), any()))
         .thenAnswer(inv -> {
             BookingsRequestDTO r = inv.getArgument(0);
             return Bookings.builder()
                 .provider(provider)
                 .customer(customer)
-                .startsTs(r.startsTs())
+                .startTs(r.startTs())
                 .endTs(r.endTs())
                 .status(r.status())
                 .build();
@@ -221,7 +226,7 @@ public class BookingsTest {
                 b.getId(),
                 b.getProvider().getId(),
                 b.getCustomer().getId(),
-                b.getStartsTs(),
+                b.getStartTs(),
                 b.getEndTs(),
                 b.getStatus(),
                 b.getTitle(),
@@ -231,26 +236,20 @@ public class BookingsTest {
             );
         });
 
-    when(bookingsEventMapper.toCreatedEvent(any(Bookings.class)))
-        .thenAnswer(inv -> {
-            Bookings b = inv.getArgument(0);
-            return BookingCreatedEvent.builder()
-                .id(b.getId())
-                .providerId(b.getProvider().getId())
-                .customerId(b.getCustomer().getId())
-                .startsTs(b.getStartsTs())
-                .endTs(b.getEndTs())
-                .build();
-        });        
+        when(authUserService.getAuthenticatedUser())
+    .thenReturn(customer); 
+
+    when(bookingsEventMapper.toCreatedEvent(any()))
+        .thenReturn(BookingCreatedEvent.builder().build());      
         
         BookingsResponseDTO responseDTO = service.saveBooking(request);
              
         assertEquals(booking.getId(), responseDTO.id());
  
         verify(bookingsRepository).save(any(Bookings.class));
-        verify(messageProducerBookings).sendBookingCreateEvent(any(BookingCreatedEvent.class));
-    }
-
+        
+        verify(messageProducerBookings).sendEvent(any());
+    } 
     @Test
     void shouldFindBookingById(){
         Users provider = Users.builder()
@@ -274,10 +273,9 @@ public class BookingsTest {
 
         Bookings booking = Bookings.builder()
             .id(1L)
-            .startsTs(LocalDateTime.now())
             .provider(provider)
             .customer(customer)
-            .startsTs(LocalDateTime.now())
+            .startTs(LocalDateTime.now())
             .build();
 
             when(bookingsResolver.resolveBookingById(booking.getId()))
@@ -290,7 +288,7 @@ public class BookingsTest {
                 b.getId(),
                 b.getProvider().getId(),
                 b.getCustomer().getId(),
-                b.getStartsTs(),
+                b.getStartTs(),
                 b.getEndTs(),
                 b.getStatus(),
                 b.getTitle(),
@@ -304,7 +302,7 @@ public class BookingsTest {
 
         assertAll(
             () -> assertEquals(booking.getId(), responseDTO.id()),
-            () -> assertEquals(booking.getStartsTs(), responseDTO.startsTs()),
+            () -> assertEquals(booking.getStartTs(), responseDTO.startTs()),
             () -> assertEquals(booking.getEndTs(), responseDTO.endTs()),
             () -> assertEquals(booking.getStatus(), responseDTO.status()),
             () -> assertEquals(booking.getCustomer().getId(), responseDTO.customer()),
@@ -348,7 +346,7 @@ public class BookingsTest {
         .id(1L)
         .customer(customer)
         .provider(provider)
-        .startsTs(LocalDateTime.now())
+        .startTs(LocalDateTime.now())
         .build();
 
     Optional<Bookings> bookingOptional = Optional.of(booking);
@@ -361,7 +359,7 @@ public class BookingsTest {
             .id(booking.getId())
             .customerId(customer.getId())
             .providerId(provider.getId())
-            .startsTs(booking.getStartsTs())
+            .startTs(booking.getStartTs())
             .endTs(booking.getEndTs())
             .build());
 
@@ -370,7 +368,7 @@ public class BookingsTest {
             booking.getId(),
             provider.getId(),
             customer.getId(),
-            booking.getStartsTs(),
+            booking.getStartTs(),
             booking.getEndTs(),
             booking.getStatus(),
             booking.getTitle(),
@@ -387,8 +385,7 @@ public class BookingsTest {
 
     // VERIFY
     verify(bookingsRepository).deleteById(1L);
-    verify(messageProducerBookings)
-        .sendBookingDeleteEvent(any(BookingDeletedEvent.class));
+    verify(messageProducerBookings).sendEvent(any());
     }
 
     @Test
@@ -403,7 +400,8 @@ public class BookingsTest {
             assertEquals("BOOKINGS NOT FOUND", exception.getMessage());
 
         verify(messageProducerBookings, never())
-            .sendBookingDeleteEvent(any());
+            .sendEvent(any());
+
         verify(bookingsRepository, never()).deleteById(any());
     }
 
@@ -431,7 +429,7 @@ public class BookingsTest {
 
         Bookings booking = Bookings.builder()
             .id(1L)
-            .startsTs(LocalDateTime.now())
+            .startTs(LocalDateTime.now())
             .customer(customer)
             .provider(provider)
             .build();
@@ -439,7 +437,7 @@ public class BookingsTest {
         BookingsRequestDTO requestDTO = new BookingsRequestDTO(
                booking.getProvider().getId(),
                booking.getCustomer().getId(),
-               booking.getStartsTs(),
+               booking.getStartTs(),
                booking.getEndTs(),
                booking.getStatus(),
                booking.getTitle(),
@@ -460,7 +458,7 @@ public class BookingsTest {
                 booking.getId(),
                 booking.getProvider().getId(),
                 booking.getCustomer().getId(),
-                booking.getStartsTs(),
+                booking.getStartTs(),
                 booking.getEndTs(),
                 booking.getStatus(),
                 booking.getTitle(),
@@ -479,8 +477,8 @@ public class BookingsTest {
         verify(bookingsRepository).save(any(Bookings.class));
 
         // Evento enviado ao RabbitMQ
-        verify(messageProducerBookings)
-            .sendBookingUpdateEvent(any(BookingUpdatedEvent.class));
+        verify(messageProducerBookings).sendEvent(any());
+
 
         
     }
@@ -509,7 +507,7 @@ public class BookingsTest {
 
         Bookings booking = Bookings.builder()
             .id(1L)
-            .startsTs(LocalDateTime.now())
+            .startTs(LocalDateTime.now())
             .customer(customer)
             .provider(provider)
             .endTs(LocalDateTime.now().plusHours(1))
@@ -519,7 +517,7 @@ public class BookingsTest {
             .id(2L)
             .customer(customer)
             .provider(provider)
-            .startsTs(LocalDateTime.now())
+            .startTs(LocalDateTime.now())
             .build();
 
         when(bookingsRepository.findAll()).thenReturn(List.of(booking,booking1));
