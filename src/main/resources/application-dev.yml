@@ -2,6 +2,7 @@ server:
   port: 8081
 
 spring:
+
   datasource:
     url: jdbc:h2:mem:bookingdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -23,6 +24,7 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
 
 rabbitmq:
 # ============================================
@@ -114,56 +116,3 @@ logging:
     "[org.springframework.amqp.rabbit.core.RabbitTemplate]": DEBUG
     "[org.springframework.amqp.rabbit.listener]": DEBUG
 
-
-
-resilience4j:
-  retry:
-    instances:
-      bookingsRetry:
-        max-attempts: 3
-        wait-duration: 3s
-      providerAvailabilityRetry:
-        max-attempts: 3
-        wait-duration: 3s
-  ratelimiter:
-    instances:
-      bookingsRateLimiter:
-        limit-for-period: 10
-        limit-refresh-period: 1s
-        timeout-duration: 0s
-      userRateLimiter:
-        limit-for-period: 10
-        limit-refresh-period: 1s
-        timeout-duration: 0s
-      providerAvailabilityRateLimiter:
-        limit-for-period: 10
-        limit-refresh-period: 1s
-        timeout-duration: 0s
-  circuitbreaker:
-    instances:
-      bookingsCircuitBreaker:
-        register-health-indicator: true
-        sliding-window-size: 10
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 10s
-      userCircuitBreaker:
-        register-health-indicator: true
-        sliding-window-size: 10
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 10s
-      providerAvailabilityCircuitBreaker:
-        register-health-indicator: true
-        sliding-window-size: 10
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 10s
-  bulkhead:
-    instances:
-      bookingsBulkhead:
-        max-concurrent-calls: 10
-        max-wait-duration: 0s
-      providerAvailabilityBulkhead:
-        max-concurrent-calls: 10
-        max-wait-duration: 0s
-      userBulkhead:
-        max-concurrent-calls: 10
-        max-wait-duration: 0s
