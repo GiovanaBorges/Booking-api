@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.ENUMS.TechSkillsENUM;
 import com.booking.booking.models.Users;
 
@@ -16,4 +17,7 @@ public interface UsersRepository extends JpaRepository<Users,Long>{
 
     @Query("SELECT u FROM Users u JOIN u.skills s WHERE s = :skill")
     List<Users> findUsersBySkill(@Param("skill") TechSkillsENUM skill);
+
+    List<Users> findByRoles(RolesENUM role);
+    
 }
