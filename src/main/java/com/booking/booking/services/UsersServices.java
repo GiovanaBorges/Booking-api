@@ -49,9 +49,6 @@ public class UsersServices {
 
     private static final Logger LOG = LoggerFactory.getLogger(BookingsServices.class);
 
-    @Bulkhead(name = "userBulkhead")
-    @CircuitBreaker(name = "userCircuitBreaker")
-    @RateLimiter(name = "userRateLimiter")
     @Transactional
     public Users createOrGet(Jwt jwt) {
 
@@ -107,10 +104,7 @@ public class UsersServices {
         return user;
     }
 
-    @Bulkhead(name = "userBulkead")
-    @CircuitBreaker(name = "userCircuitBreaker")
-    @RateLimiter(name = "userRateLimiter")
-    @Retry(name = "userRetry")
+   
     public List<UserResponseDTO> getUsersBySkill(TechSkillsENUM skill) {
         List<Users> usersWithSkill = usersRepository.findUsersBySkill(skill);
 
@@ -131,9 +125,7 @@ public class UsersServices {
                 .collect(Collectors.toList());
     }
 
-    @Bulkhead(name = "userBulkead")
-    @CircuitBreaker(name = "userCircuitBreaker")
-    @RateLimiter(name = "userRateLimiter")
+  
     @Transactional
     public UserResponseDTO editUser(UserRequestDTO dto, Jwt jwt) {
         String keycloakId = jwt.getSubject();
@@ -156,18 +148,11 @@ public class UsersServices {
         return mapperUser.toResponse(updated);
     }
 
-    @Bulkhead(name = "userBulkead")
-    @CircuitBreaker(name = "userCircuitBreaker")
-    @RateLimiter(name = "userRateLimiter")
-    @Retry(name = "userRetry")
+
     public UserResponseDTO getUserById(Long id) {
         return mapperUser.toResponse(userResolver.resolveUserById(id));
     }
 
-    @Bulkhead(name = "userBulkead")
-    @CircuitBreaker(name = "userCircuitBreaker")
-    @RateLimiter(name = "userRateLimiter")
-    @Retry(name = "userRetry")
     public List<UserResponseDTO> getAllProviders() {
 
         List<Users> providers = usersRepository.findByRoles(RolesENUM.PROVIDER);

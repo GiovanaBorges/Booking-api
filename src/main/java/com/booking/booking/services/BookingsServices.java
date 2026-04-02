@@ -72,9 +72,7 @@ public class BookingsServices {
 
     private static final Logger LOG = LoggerFactory.getLogger(BookingsServices.class);
 
-    @Bulkhead(name = "bookingsBulkhead")
-    @CircuitBreaker(name = "bookingsCircuitBreaker")
-    @RateLimiter(name = "bookingsRateLimiter")
+ 
     @CacheEvict(value = "bookings", allEntries = true)
     public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO) {
 
@@ -120,10 +118,7 @@ public class BookingsServices {
                 .toList();
     }
 
-    @Bulkhead(name = "bookingsBulkhead")
-    @CircuitBreaker(name = "bookingsCircuitBreaker")
-    @Retry(name = "bookingsRetry")
-    @RateLimiter(name = "bookingsRateLimiter")
+
     @Cacheable(value = "bookings", key = "#id")
     public BookingsResponseDTO getBookingById(Long id) {
         Bookings bookingsFound = bookingsResolver.resolveBookingById(id)
@@ -132,9 +127,6 @@ public class BookingsServices {
         return bookingMapper.toResponse(bookingsFound);
     }
 
-    @Bulkhead(name = "bookingsBulkhead")
-    @CircuitBreaker(name = "bookingsCircuitBreaker")
-    @RateLimiter(name = "bookingsRateLimiter")
     @CacheEvict(value = "bookings", allEntries = true)
     public BookingsResponseDTO deleteBooking(Long id) {
         Bookings bookingsFound = bookingsResolver.resolveBookingById(id)
@@ -179,9 +171,6 @@ public class BookingsServices {
         bookingsRepository.save(booking);
     }
 
-    @Bulkhead(name = "bookingsBulkhead")
-    @CircuitBreaker(name = "bookingsCircuitBreaker")
-    @RateLimiter(name = "bookingsRateLimiter")
     public BookingsResponseDTO updateBooking(Long id, BookingsRequestDTO bookingsRequestDTO) {
 
         Optional<Bookings> booking = bookingsResolver.resolveBookingById(id);
@@ -202,10 +191,6 @@ public class BookingsServices {
         return bookingMapper.toResponse(saved);
     }
 
-    @Bulkhead(name = "bookingsBulkhead")
-    @CircuitBreaker(name = "bookingsCircuitBreaker")
-    @Retry(name = "bookingsRetry")
-    @RateLimiter(name = "bookingsRateLimiter")
     @Cacheable(value = "bookings", key = "'all'")
     public List<BookingsResponseDTO> getAllBookings() {
         List<Bookings> bookings = bookingsRepository.findAll();

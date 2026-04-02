@@ -71,9 +71,6 @@ public class ProviderAvailabilityservices {
         this.authUserService = authenticatedUserService;
     }
 
-    @Bulkhead(name = "providerAvailabilityBulkead")
-    @CircuitBreaker(name = "providerAvailabilityCircuitBreaker")
-    @RateLimiter(name = "providerAvailabilityRateLimiter")
     public ProviderAvailabilityResponseDTO saveProviderAvailability(ProviderAvailabilityRequestDTO requestDTO) {
 
         Users provider = userResolver.getAuthenticatedUser();
@@ -94,9 +91,7 @@ public class ProviderAvailabilityservices {
         return providerAvailabilityMapper.toResponse(result);
     }
 
-    @Bulkhead(name = "providerAvailabilityBulkead")
-    @CircuitBreaker(name = "providerAvailabilityCircuitBreaker") 
-    @RateLimiter(name = "providerAvailabilityRateLimiter")
+ 
     public ProviderAvailabilityResponseDTO deleteProviderById(Long id) {
 
         Users loggedUser = userResolver.getAuthenticatedUser();
@@ -120,10 +115,7 @@ public class ProviderAvailabilityservices {
         return providerAvailabilityMapper.toResponse(providerFound);
     }
 
-    @Bulkhead(name = "providerAvailabilityBulkead")
-    @CircuitBreaker(name = "providerAvailabilityCircuitBreaker")
-    @RateLimiter(name = "providerAvailabilityRateLimiter")
-    @Retry(name = "providerAvailabilityRetry")
+  
     @Cacheable(value = "providerAvailability", key = "#id")
     public ProviderAvailabilityResponseDTO findProviderById(Long id) {
         ProviderAvailability providerAvailable = providerAvailabilityResolver.resolveProviderById(id);
@@ -151,9 +143,7 @@ public class ProviderAvailabilityservices {
                 .toList();
     }
 
-    @Bulkhead(name = "providerAvailabilityBulkead")
-    @CircuitBreaker(name = "providerAvailabilityCircuitBreaker")
-    @RateLimiter(name = "providerAvailabilityRateLimiter")
+  
     public ProviderAvailabilityResponseDTO updateProvider(Long id, ProviderAvailabilityRequestDTO requestDTO) {
 
         Users loggedUser = userResolver.getAuthenticatedUser();
@@ -180,10 +170,7 @@ public class ProviderAvailabilityservices {
         return providerAvailabilityMapper.toResponse(updated);
     }
 
-    @Bulkhead(name = "providerAvailabilityBulkead")
-    @CircuitBreaker(name = "providerAvailabilityCircuitBreaker")
-    @RateLimiter(name = "providerAvailabilityRateLimiter")
-    @Retry(name = "providerAvailabilityRetry")
+   
     @Cacheable(value = "providerAvailability", key = "'all'")
     public List<ProviderAvailabilityResponseDTO> getAllProvider() {
         List<ProviderAvailability> resultAllProvidersAvailable = providerRepository.findAll();
