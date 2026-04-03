@@ -3,6 +3,8 @@ package com.booking.booking.events.providerEvents;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,9 +13,11 @@ import lombok.Data;
 public class ProviderAvailabilityDeletedEvent {
     private Long id;
     private Long providerId;
-    private int day_of_week;
-    private LocalTime start_time;
-    private LocalTime end_time;
-
+    @JsonProperty("day_of_week")
+    private int dayOfWeek;
+    @JsonProperty("start_time")
+    private LocalTime startTime;
+    @JsonProperty("end_time")
+    private LocalTime endTime;
     private LocalDateTime eventTs;
 }

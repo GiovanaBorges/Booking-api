@@ -1,251 +1,237 @@
 package com.booking.booking.services;
 
-import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import com.booking.booking.DTO.BookingsRequestDTO;
-import com.booking.booking.DTO.BookingsResponseDTO;
+import com.booking.booking.DTO.EventDTO;
+import com.booking.booking.DTO.requests.BookingsRequestDTO;
+import com.booking.booking.DTO.responses.BookingsResponseDTO;
+import com.booking.booking.DTO.responses.ProviderAvailabilityResponseDTO;
+import com.booking.booking.ENUMS.EventTypeEnum;
+import com.booking.booking.ENUMS.StatusENUM;
 import com.booking.booking.events.bookingEvents.BookingCreatedEvent;
 import com.booking.booking.events.bookingEvents.BookingDeletedEvent;
 import com.booking.booking.events.bookingEvents.BookingUpdatedEvent;
+import com.booking.booking.events.providerEvents.ProviderAvailabilityDeletedEvent;
 import com.booking.booking.exceptions.ApiException;
+import com.booking.booking.mappers.BookingMapper;
+import com.booking.booking.mappers.events.BookingEventMapper;
 import com.booking.booking.models.Bookings;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.BookingsRepository;
 import com.booking.booking.repositories.UsersRepository;
+import com.booking.booking.services.helpers.BookingsResolver;
+import com.booking.booking.services.helpers.UserResolver;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerBookings;
+
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 
 @Service
 public class BookingsServices {
-    @Autowired
-    private BookingsRepository bookingsRepository;
+    private final BookingsRepository bookingsRepository;
+    private final MessageProducerBookings messageProducerBookings;
+    private final UsersRepository usersRepository;
+    private final UserResolver userResolver;
+    private final BookingMapper bookingMapper;
+    private final BookingEventMapper bookingEventMapper;
+    private final BookingsResolver bookingsResolver;
+    private final AuthenticatedUserService authUserService;
 
-    @Autowired
-    private MessageProducerBookings messageProducerBookings;
+    public BookingsServices(
+            BookingsRepository bookingsRepository,
+            MessageProducerBookings messageProducerBookings,
+            UsersRepository usersRepository,
+            BookingMapper bookingMapper,
+            BookingEventMapper bookingEventMapper,
+            BookingsResolver bookingsResolver,
+            AuthenticatedUserService authUserService,
+            UserResolver userResolver) {
+        this.bookingsRepository = bookingsRepository;
+        this.messageProducerBookings = messageProducerBookings;
+        this.usersRepository = usersRepository;
+        this.bookingMapper = bookingMapper;
+        this.bookingEventMapper = bookingEventMapper;
+        this.bookingsResolver = bookingsResolver;
+        this.authUserService = authUserService;
+        this.userResolver = userResolver;
+    }
 
-    @Autowired
-    private UsersRepository usersRepository;
+    private static final Logger LOG = LoggerFactory.getLogger(BookingsServices.class);
 
-    @Autowired
-    private LockService lockService;
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    
+ 
     @CacheEvict(value = "bookings", allEntries = true)
-    public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO,String idempotencyKey){
+    public BookingsResponseDTO saveBooking(BookingsRequestDTO requestDTO) {
 
-        String idempotencyRedisKey = "idempotency:" +idempotencyKey;
+        Optional<Bookings> conflict = bookingsRepository.findConflict(
+                requestDTO.providerId(),
+                requestDTO.startTs(),
+                requestDTO.endTs());
 
-        String existing = redisTemplate.opsForValue().get(idempotencyRedisKey);
-        if(existing != null){
-            throw new ApiException("IDEMPOTENCY REPLAY", HttpStatus.CONFLICT);
+        if (conflict.isPresent()) {
+            throw new ApiException("THIS TIME SLOT IS ALREADY BOOKED",
+                    HttpStatus.CONFLICT);
         }
 
-        String lockKey = String.format(
-            "lock:booking:%d:%s:%s",
-            requestDTO.providerId(),
-            requestDTO.startsTs(),
-            requestDTO.endTs()
-        );
+        Users user = authUserService.getAuthenticatedUser();
+        Users provider = userResolver.resolveUserById(requestDTO.providerId());
 
-        boolean locked = lockService.acquireLock(lockKey, Duration.ofSeconds(10));
-        if(!locked){
-            throw new ApiException("LOCK NOT ACQUIRED", HttpStatus.LOCKED);
-        }
-        
-        try{
-            Optional<Bookings> conflict = bookingsRepository.findConflict(
-                requestDTO.providerId(), 
-                requestDTO.startsTs(),
-                requestDTO.endTs()
-            );
+        System.err.println("USER ID: " + user.getId());
 
-            if(conflict.isPresent()){
-                throw new ApiException("THIS TIME SLOT IS ALREADY BOOKED",
-                 HttpStatus.CONFLICT);
-            }
-        
+        Bookings booking = bookingMapper.toEntity(requestDTO, usersRepository);
+        booking.setCustomer(user);
+        booking.setProvider(provider);
 
-        if(conflict.isPresent()){
-            throw new ApiException("THIS TIME SLOT IS ALREADY BOOKED", HttpStatus.CONFLICT);
-        }
-        
-        Users provider = usersRepository.findById(requestDTO.providerId())
-            .orElseThrow(() -> new ApiException("PROVIDER NOT FOUND",HttpStatus.NOT_FOUND));
-
-        Users customer = usersRepository.findById(requestDTO.customerId())
-            .orElseThrow(() -> new ApiException("CUSTOMER NOT FOUND", HttpStatus.NOT_FOUND));
-        
-        Bookings booking = Bookings.builder()
-            .provider(provider)
-            .customer(customer)
-            .startsTs(requestDTO.startsTs())
-            .endTs(requestDTO.endTs())
-            .status(requestDTO.status())
-            .build();
-        
         Bookings bookingSaved = bookingsRepository.save(booking);
 
-        redisTemplate.opsForValue()
-            .set(idempotencyRedisKey, 
-                bookingSaved.getId().toString(),
-                Duration.ofHours(24)
-            );
+        EventDTO<BookingCreatedEvent> event = new EventDTO<>(
+                EventTypeEnum.BOOKING_CREATED,
+                bookingEventMapper.toCreatedEvent(bookingSaved),
+                LocalDateTime.now(),
+                List.of(booking.getProvider().getId(),booking.getCustomer().getId()));
 
-        BookingCreatedEvent bookingCreatedEvent = BookingCreatedEvent.builder()
-            .id(bookingSaved.getId())
-            .customerId(bookingSaved.getCustomer().getId())
-            .endTs(bookingSaved.getEndTs())
-            .startsTs(bookingSaved.getStartsTs())
-            .providerId(bookingSaved.getProvider().getId())
-            .eventTs(LocalDateTime.now())
-            .build();
+        messageProducerBookings.sendEvent(event);
 
-        messageProducerBookings.sendBookingCreateEvent(bookingCreatedEvent);
-
-        return new BookingsResponseDTO(
-            bookingSaved.getId(),
-            bookingSaved.getProvider().getId(),
-            bookingSaved.getCustomer().getId(),
-            bookingSaved.getStartsTs(),
-            bookingSaved.getEndTs(),
-            bookingSaved.getStatus(),
-            bookingSaved.getCreatedAt(),
-            bookingSaved.getUpdatedAt()
-        );
-
-    } finally{
-        lockService.releaseLock(lockKey);
+        return bookingMapper.toResponse(bookingSaved);
     }
+
+    public List<BookingsResponseDTO> getBookingsByStatus(String status) {
+        Users provider = authUserService.getAuthenticatedUser();
+
+        return bookingsRepository
+                .findByProviderAndStatus(provider, StatusENUM.valueOf(status.toUpperCase()))
+                .stream()
+                .map(bookingMapper::toResponse)
+                .toList();
     }
+
 
     @Cacheable(value = "bookings", key = "#id")
-    public BookingsResponseDTO getBookingById(Long id){
-        Optional<Bookings> bookingsFound = bookingsRepository.findById(id);
-        if(bookingsFound.isEmpty()){
-            throw new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND);
-        }
+    public BookingsResponseDTO getBookingById(Long id) {
+        Bookings bookingsFound = bookingsResolver.resolveBookingById(id)
+                .orElseThrow(() -> new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND));
 
-        return new BookingsResponseDTO(
-            bookingsFound.get().getId(),
-            bookingsFound.get().getProvider().getId(),
-            bookingsFound.get().getCustomer().getId(),
-            bookingsFound.get().getStartsTs(),
-            bookingsFound.get().getEndTs(),
-            bookingsFound.get().getStatus(),
-            bookingsFound.get().getCreatedAt(),
-            bookingsFound.get().getUpdatedAt()
-        );
+        return bookingMapper.toResponse(bookingsFound);
     }
 
-    
     @CacheEvict(value = "bookings", allEntries = true)
-    public BookingsResponseDTO deleteBooking(Long id){
-        Optional<Bookings> bookingsFound = bookingsRepository.findById(id);
-        if(bookingsFound.isEmpty()){
-            throw new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND);
-        }
-
+    public BookingsResponseDTO deleteBooking(Long id) {
+        Bookings bookingsFound = bookingsResolver.resolveBookingById(id)
+                .orElseThrow(() -> new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND));
         bookingsRepository.deleteById(id);
 
-        BookingDeletedEvent bookingDeletedEvent = BookingDeletedEvent.builder()
-            .id(bookingsFound.get().getId())
-            .customerId(bookingsFound.get().getCustomer().getId())
-            .endTs(bookingsFound.get().getEndTs())
-            .startsTs(bookingsFound.get().getStartsTs())
-            .providerId(bookingsFound.get().getProvider().getId())
-            .eventTs(LocalDateTime.now())
-            .build();
+        EventDTO<BookingDeletedEvent> event = new EventDTO<>(
+                EventTypeEnum.BOOKING_DELETED,
+                bookingEventMapper.toDeletedEvent(bookingsFound),
+                LocalDateTime.now(),
+                List.of(bookingsFound.getProvider().getId(),bookingsFound.getCustomer().getId()));
 
-        messageProducerBookings.sendBookingDeleteEvent(bookingDeletedEvent);
-            
-        return new BookingsResponseDTO(
-            bookingsFound.get().getId(),
-            bookingsFound.get().getProvider().getId(),
-            bookingsFound.get().getCustomer().getId(),
-            bookingsFound.get().getStartsTs(),
-            bookingsFound.get().getEndTs(),
-            bookingsFound.get().getStatus(),
-            bookingsFound.get().getCreatedAt(),
-            bookingsFound.get().getUpdatedAt()
-        );
+        messageProducerBookings.sendEvent(event);
+
+        return bookingMapper.toResponse(bookingsFound);
     }
 
-    public BookingsResponseDTO updateBooking(Long id,BookingsRequestDTO bookingsRequestDTO){
-        
+    public List<BookingsResponseDTO> getBookingsAsProvider() {
+        Users user = authUserService.getAuthenticatedUser();
+
+        return bookingsRepository.findByProvider(user)
+                .stream()
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    public List<BookingsResponseDTO> getBookingsAsCustomer() {
+        Users user = authUserService.getAuthenticatedUser();
+
+        return bookingsRepository.findByCustomer(user)
+                .stream()
+                .map(bookingMapper::toResponse)
+                .toList();
+    }
+
+    public void confirmBooking(Long id) {
         Bookings booking = bookingsRepository.findById(id)
-        .orElseThrow(() -> new ApiException(
-            "BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND));
+                .orElseThrow();
 
-        Users provider = usersRepository.findById(bookingsRequestDTO.providerId())
-            .orElseThrow(() -> new ApiException("PROVIDER NOT FOUND",HttpStatus.NOT_FOUND));
+        booking.setStatus(StatusENUM.CONFIRMED);
 
-        Users customer = usersRepository.findById(bookingsRequestDTO.customerId())
-            .orElseThrow(() -> new ApiException("CUSTOMER NOT FOUND", HttpStatus.NOT_FOUND));
+        bookingsRepository.save(booking);
+    }
 
-        booking.setProvider(provider);
-        booking.setCustomer(customer);
-        booking.setStartsTs(bookingsRequestDTO.startsTs());
-        booking.setEndTs(bookingsRequestDTO.endTs());
-        booking.setStatus(bookingsRequestDTO.status());
+    public BookingsResponseDTO updateBooking(Long id, BookingsRequestDTO bookingsRequestDTO) {
 
-        Bookings saved = bookingsRepository.save(booking);
+        Optional<Bookings> booking = bookingsResolver.resolveBookingById(id);
 
-         BookingUpdatedEvent event = BookingUpdatedEvent.builder()
-            .id(saved.getId())
-            .providerId(saved.getProvider().getId())
-            .customerId(saved.getCustomer().getId())
-            .startsTs(saved.getStartsTs())
-            .endTs(saved.getEndTs())
-            .eventTs(LocalDateTime.now())
-            .build();
+        bookingMapper.updateEntity(bookingsRequestDTO, booking.get(), usersRepository);
+
+        Bookings saved = bookingsRepository.save(booking.get());
+
+        EventDTO<BookingUpdatedEvent> event = new EventDTO<>(
+                EventTypeEnum.BOOKING_UPDATED,
+                bookingEventMapper.toUpdatedEvent(saved),
+                LocalDateTime.now(),
+                List.of(saved.getProvider().getId(),saved.getCustomer().getId()));
+
+        messageProducerBookings.sendEvent(event);
 
 
-        messageProducerBookings.sendBookingUpdateEvent(event);
-
-        return new BookingsResponseDTO(
-            saved.getId(),
-            saved.getProvider().getId(),
-            saved.getCustomer().getId(),
-            saved.getStartsTs(),
-            saved.getEndTs(),
-            saved.getStatus(),
-            saved.getCreatedAt(),
-            saved.getUpdatedAt()
-        );
+        return bookingMapper.toResponse(saved);
     }
 
     @Cacheable(value = "bookings", key = "'all'")
-    public List<BookingsResponseDTO> getAllBookings(){
-        List<Bookings> bookingsFound = bookingsRepository.findAll();
-        if(bookingsFound.isEmpty()){
-            throw new ApiException("BOOKINGS NOT FOUND", HttpStatus.NOT_FOUND);
+    public List<BookingsResponseDTO> getAllBookings() {
+        List<Bookings> bookings = bookingsRepository.findAll();
+
+        if (bookings.isEmpty()) {
+            throw new ApiException("NO BOOKINGS FOUND", HttpStatus.NOT_FOUND);
         }
+        return bookings.stream()
+                .map(bookingMapper::toResponse)
+                .toList();
 
-        return bookingsFound.stream()
-            .map(b -> new BookingsResponseDTO(
-                    b.getId(),
-                    b.getProvider().getId(),
-                    b.getCustomer().getId(),
-                    b.getStartsTs(),
-                    b.getEndTs(),
-                    b.getStatus(),
-                    b.getCreatedAt(),
-                    b.getUpdatedAt()))
-                    .collect(Collectors.toList());
+    }
 
-    }   
+    // ============================
+    // FALLBACK METHODS
+    // ============================
+
+    private RuntimeException serviceUnavailable(Throwable t) {
+        LOG.error("Booking service fallback triggered", t);
+        return new ApiException(
+                "BOOKING SERVICE TEMPORARILY UNAVAILABLE",
+                HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    // saveBooking
+    public BookingsResponseDTO handleBookingsEventFailure(BookingsRequestDTO dto, Throwable t) {
+        throw serviceUnavailable(t);
+    }
+
+    // getBookingById e deleteBooking
+    public BookingsResponseDTO handleBookingsEventFailure(Long id, Throwable t) {
+        throw serviceUnavailable(t);
+    }
+
+    // updateBooking
+    public BookingsResponseDTO handleBookingsEventFailure(Long id, BookingsRequestDTO dto, Throwable t) {
+        throw serviceUnavailable(t);
+    }
+
+    // getAllBookings
+    public List<BookingsResponseDTO> handleBookingsEventFailure(Throwable t) {
+        throw serviceUnavailable(t);
+    }
 }

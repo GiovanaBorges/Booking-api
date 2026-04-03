@@ -1,186 +1,231 @@
 package com.booking.booking.services;
 
+import com.booking.booking.repositories.BookingsRepository;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import com.booking.booking.DTO.ProviderAvailabilityRequestDTO;
-import com.booking.booking.DTO.ProviderAvailabilityResponseDTO;
+import com.booking.booking.DTO.EventDTO;
+import com.booking.booking.DTO.requests.BookingsRequestDTO;
+import com.booking.booking.DTO.requests.ProviderAvailabilityRequestDTO;
+import com.booking.booking.DTO.responses.BookingsResponseDTO;
+import com.booking.booking.DTO.responses.ProviderAvailabilityResponseDTO;
+import com.booking.booking.ENUMS.EventTypeEnum;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityCreatedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityDeletedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityUpdatedEvent;
+import com.booking.booking.events.usersEvents.UsersCreatedEvent;
 import com.booking.booking.exceptions.ApiException;
+import com.booking.booking.mappers.ProviderAvailabilityMapper;
+import com.booking.booking.mappers.events.ProviderAvailabilityEventMapper;
 import com.booking.booking.models.ProviderAvailability;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.ProviderAvailabilityRepository;
-import com.booking.booking.repositories.UsersRepository;
+import com.booking.booking.services.helpers.ProviderAvailabilityResolver;
+import com.booking.booking.services.helpers.UserResolver;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerProvider;
+
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 
 @Service
 public class ProviderAvailabilityservices {
-    
-    @Autowired
-    private ProviderAvailabilityRepository providerRepository;
 
-    @Autowired
-    private UsersRepository usersRepository;
+    private final UserResolver userResolver;
+    private final ProviderAvailabilityRepository providerRepository;
+    private final MessageProducerProvider messageProducerProvider;
+    private final ProviderAvailabilityMapper providerAvailabilityMapper;
+    private final ProviderAvailabilityEventMapper providerEventMapper;
+    private final ProviderAvailabilityResolver providerAvailabilityResolver;
+    private final AuthenticatedUserService authUserService;
 
-    @Autowired
-    private MessageProducerProvider messageProducerProvider;
+    private static final Logger LOG = LoggerFactory.getLogger(BookingsServices.class);
 
-    @Autowired
-    private LockService idempotencyService;
-
-    public ProviderAvailabilityResponseDTO saveProviderAvailability(
-            ProviderAvailabilityRequestDTO requestDTO,
-            String idempotencyKey) {
-
-        return idempotencyService.execute(
-            idempotencyKey,
-            () -> createAvailability(requestDTO)
-        );
+    ProviderAvailabilityservices(
+            UserResolver userResolver,
+            ProviderAvailabilityRepository providerAvailabilityRepository,
+            MessageProducerProvider messageProducerProvider,
+            ProviderAvailabilityMapper providerAvailabilityMapper,
+            ProviderAvailabilityEventMapper providerAvailabilityEventMapper,
+            ProviderAvailabilityResolver providerAvailabilityResolver,
+            AuthenticatedUserService authenticatedUserService) {
+        this.userResolver = userResolver;
+        this.providerRepository = providerAvailabilityRepository;
+        this.messageProducerProvider = messageProducerProvider;
+        this.providerAvailabilityMapper = providerAvailabilityMapper;
+        this.providerEventMapper = providerAvailabilityEventMapper;
+        this.providerAvailabilityResolver = providerAvailabilityResolver;
+        this.authUserService = authenticatedUserService;
     }
 
+    public ProviderAvailabilityResponseDTO saveProviderAvailability(ProviderAvailabilityRequestDTO requestDTO) {
 
-    public ProviderAvailabilityResponseDTO createAvailability(ProviderAvailabilityRequestDTO requestDTO){
-        
-        Users provider = usersRepository.findById(requestDTO.providerId())
-            .orElseThrow(() -> new ApiException("Provider availability not found", HttpStatus.NOT_FOUND));
+        Users provider = userResolver.getAuthenticatedUser();
 
-        ProviderAvailability providerToBeSaved = ProviderAvailability.builder()
-            .day_of_week(requestDTO.day_of_week())
-            .end_time(requestDTO.end_time())
-            .provider(provider)
-            .start_time(requestDTO.startTime())
-            .build();
-        
+        ProviderAvailability providerToBeSaved = providerAvailabilityMapper.toEntity(requestDTO);
+        providerToBeSaved.setProvider(provider);
+
         ProviderAvailability result = providerRepository.save(providerToBeSaved);
 
-        // create event for rabbitMQ
-        ProviderAvailabilityCreatedEvent event = ProviderAvailabilityCreatedEvent.builder()            
-            .id(result.getId())
-            .day_of_week(result.getDay_of_week())
-            .end_time(result.getEnd_time())
-            .start_time(result.getStart_time())
-            .providerId(result.getProvider().getId())
-            .eventTs(LocalDateTime.now())
-            .build();
-            
-        
-            // send event to RabbitMQ
-            messageProducerProvider.sendProviderCreateEvent(event);
+        EventDTO<ProviderAvailabilityCreatedEvent> event = new EventDTO<>(
+                EventTypeEnum.PROVIDER_CREATED,
+                providerEventMapper.toCreateEvent(result),
+                LocalDateTime.now(),
+                List.of(result.getProvider().getId()));
 
-            return new ProviderAvailabilityResponseDTO(
-                result.getId(),
-                result.getDay_of_week(),
-                result.getStart_time(),
-                result.getEnd_time(),
-                result.getProvider()
-            );
+        messageProducerProvider.sendEvent(event);
+
+        return providerAvailabilityMapper.toResponse(result);
     }
 
-    public ProviderAvailabilityResponseDTO deleteProviderById(Long id){
-        ProviderAvailability providerFound = providerRepository.findById(id)
-            .orElseThrow(() -> new ApiException("Provider availability not found", HttpStatus.NOT_FOUND));
+ 
+    public ProviderAvailabilityResponseDTO deleteProviderById(Long id) {
+
+        Users loggedUser = userResolver.getAuthenticatedUser();
+
+        ProviderAvailability providerFound = providerAvailabilityResolver.resolveProviderById(id);
+
+        if (!providerFound.getProvider().getId().equals(loggedUser.getId())) {
+            throw new ApiException("FORBIDDEN", HttpStatus.FORBIDDEN);
+        }
 
         providerRepository.deleteById(id);
 
+       EventDTO<ProviderAvailabilityDeletedEvent> event = new EventDTO<>(
+                EventTypeEnum.PROVIDER_DELETED,
+                providerEventMapper.toDeletedEvent(providerFound),
+                LocalDateTime.now(),
+                List.of(providerFound.getProvider().getId()));
 
-        // delete event for rabbitMQ
-        ProviderAvailabilityDeletedEvent event = ProviderAvailabilityDeletedEvent.builder()            
-            .id(providerFound.getId())
-            .day_of_week(providerFound.getDay_of_week())
-            .end_time(providerFound.getEnd_time())
-            .start_time(providerFound.getStart_time())
-            .providerId(providerFound.getProvider().getId())
-            .eventTs(LocalDateTime.now())
-            .build();
-            
-            // send event to RabbitMQ
-            messageProducerProvider.sendProviderDeleteEvent(event);
+        messageProducerProvider.sendEvent(event);
 
-        return new ProviderAvailabilityResponseDTO(
-            providerFound.getId(),
-            providerFound.getDay_of_week(),
-            providerFound.getStart_time(),
-            providerFound.getEnd_time(),
-            providerFound.getProvider()
-        );
+        return providerAvailabilityMapper.toResponse(providerFound);
     }
 
-    public ProviderAvailabilityResponseDTO findProviderById(Long id){
-        Optional<ProviderAvailability> providerAvailable = providerRepository.findById(id);
-        if(providerAvailable.isEmpty()){
-            throw new ApiException("Provider availability not found",HttpStatus.NOT_FOUND);
+  
+    @Cacheable(value = "providerAvailability", key = "#id")
+    public ProviderAvailabilityResponseDTO findProviderById(Long id) {
+        ProviderAvailability providerAvailable = providerAvailabilityResolver.resolveProviderById(id);
+
+        return providerAvailabilityMapper.toResponse(providerAvailable);
+    }
+
+    public List<ProviderAvailabilityResponseDTO> getAvailabilityByDate(Long providerId, String date) {
+
+        LocalDate parsedDate = LocalDate.parse(date);
+
+        int dayOfWeek = parsedDate.getDayOfWeek().getValue();
+        // Monday=1 ... Sunday=7
+
+        // seu sistema: 0=domingo
+        dayOfWeek = dayOfWeek % 7;
+
+        Users provider = userResolver.resolveUserById(providerId);
+
+        System.out.println("PROVIDER ID: " + provider.getId());
+
+        return providerRepository.findByProviderAndDayOfWeek(provider, dayOfWeek)
+                .stream()
+                .map(providerAvailabilityMapper::toResponse)
+                .toList();
+    }
+
+  
+    public ProviderAvailabilityResponseDTO updateProvider(Long id, ProviderAvailabilityRequestDTO requestDTO) {
+
+        Users loggedUser = userResolver.getAuthenticatedUser();
+
+        ProviderAvailability providerFound = providerAvailabilityResolver.resolveProviderById(id);
+
+        if (!providerFound.getProvider().getId().equals(loggedUser.getId())) {
+            throw new ApiException("FORBIDDEN", HttpStatus.FORBIDDEN);
         }
-        return new ProviderAvailabilityResponseDTO(
-            providerAvailable.get().getId(),
-            providerAvailable.get().getDay_of_week(),
-            providerAvailable.get().getStart_time(),
-            providerAvailable.get().getEnd_time(),
-            providerAvailable.get().getProvider()
-        );
-    }
 
-    public ProviderAvailabilityResponseDTO updateProvider(Long id,ProviderAvailabilityRequestDTO requestDTO){
-        ProviderAvailability providerFound = providerRepository.findById(id)
-            .orElseThrow(() -> new ApiException("Provider availability not found", HttpStatus.NOT_FOUND));
-
-        Users provider = usersRepository.findById(requestDTO.providerId())
-            .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
-        
         // updating data
-        providerFound.setDay_of_week(requestDTO.day_of_week());
-        providerFound.setEnd_time(requestDTO.end_time());
-        providerFound.setProvider(provider);
-        providerFound.setStart_time(requestDTO.startTime());
+        providerAvailabilityMapper.updateEntity(requestDTO, providerFound);
 
         ProviderAvailability updated = providerRepository.save(providerFound);
 
-         // delete event for rabbitMQ
-        ProviderAvailabilityUpdatedEvent event = ProviderAvailabilityUpdatedEvent.builder()            
-            .id(updated.getId())
-            .day_of_week(updated.getDay_of_week())
-            .end_time(updated.getEnd_time())
-            .start_time(updated.getStart_time())
-            .providerId(updated.getProvider().getId())
-            .eventTs(LocalDateTime.now())
-            .build();
-            
-            // send event to RabbitMQ
-            messageProducerProvider.sendProviderUpdateEvent(event);
+       EventDTO<ProviderAvailabilityUpdatedEvent> event = new EventDTO<>(
+                EventTypeEnum.PROVIDER_UPDATED,
+                providerEventMapper.toUpdatedEvent(updated),
+                LocalDateTime.now(),
+                List.of(updated.getProvider().getId()));
 
+        messageProducerProvider.sendEvent(event);
 
-        return new ProviderAvailabilityResponseDTO(
-            updated.getId(),
-            updated.getDay_of_week(),
-            updated.getStart_time(),
-            updated.getEnd_time(),
-            updated.getProvider()
-        );
+        return providerAvailabilityMapper.toResponse(updated);
     }
 
-    public List<ProviderAvailabilityResponseDTO> getAllProvider(){
+   
+    @Cacheable(value = "providerAvailability", key = "'all'")
+    public List<ProviderAvailabilityResponseDTO> getAllProvider() {
         List<ProviderAvailability> resultAllProvidersAvailable = providerRepository.findAll();
 
-        if(resultAllProvidersAvailable.isEmpty()){
-            throw new ApiException("Provider availability not found", HttpStatus.NOT_FOUND);
+        if (resultAllProvidersAvailable.isEmpty()) {
+            throw new ApiException("PROVIDER AVAILABILITY NOT FOUND", HttpStatus.NOT_FOUND);
         }
         return resultAllProvidersAvailable.stream()
-            .map(provider -> new ProviderAvailabilityResponseDTO(
-              provider.getId(),
-              provider.getDay_of_week(),
-              provider.getStart_time(),
-              provider.getEnd_time(),
-              provider.getProvider()))
-              .collect(Collectors.toList());
+                .map(provider -> providerAvailabilityMapper.toResponse(provider))
+                .collect(Collectors.toList());
     }
 
+    public List<ProviderAvailabilityResponseDTO> getMyAvailabilities() {
+
+        Users user = authUserService.getAuthenticatedUser();
+        System.out.println("PROVIDER ID: " + user.getId());
+
+        return providerRepository.findByProvider(user)
+                .stream()
+                .map(provider -> providerAvailabilityMapper.toResponse(provider))
+                .collect(Collectors.toList());
+
+    }
+
+    // ============================
+    // FALLBACK METHODS
+    // ============================
+
+    private RuntimeException serviceUnavailable(Throwable t) {
+        LOG.error("Provider availability service fallback triggered", t);
+        return new ApiException(
+                "PROVIDER AVAILABILITY SERVICE TEMPORARILY UNAVAILABLE",
+                HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    // saveProviderAvailability
+    public ProviderAvailabilityResponseDTO handleProviderAvailabilityEventFailure(ProviderAvailabilityRequestDTO dto,
+            Throwable t) {
+        throw serviceUnavailable(t);
+    }
+
+    // getProviderAvailabilityById e deleteProviderAvailability
+    public ProviderAvailabilityResponseDTO handleProviderAvailabilityEventFailure(Long id, Throwable t) {
+        throw serviceUnavailable(t);
+    }
+
+    // updateProviderAvailability
+    public ProviderAvailabilityResponseDTO handleProviderAvailabilityEventFailure(Long id,
+            ProviderAvailabilityRequestDTO dto, Throwable t) {
+        throw serviceUnavailable(t);
+    }
+
+    // getAllProviderAvailability
+    public List<ProviderAvailabilityResponseDTO> handleProviderAvailabilityEventFailure(Throwable t) {
+        throw serviceUnavailable(t);
+    }
 
 }

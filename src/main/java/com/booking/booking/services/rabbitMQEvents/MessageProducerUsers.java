@@ -5,16 +5,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import com.booking.booking.DTO.EventDTO;
 import com.booking.booking.events.usersEvents.UsersCreatedEvent;
 import com.booking.booking.events.usersEvents.UsersDeletedEvent;
 import com.booking.booking.events.usersEvents.UsersUpdatedEvent;
 
 import lombok.RequiredArgsConstructor;
-
 @Service
 @RequiredArgsConstructor
 public class MessageProducerUsers {
+
     private static final Logger log = LoggerFactory.getLogger(MessageProducerUsers.class);
+
     private final RabbitTemplate rabbitTemplate;
 
     @Value("${rabbitmq.users.exchange}")
@@ -29,18 +32,22 @@ public class MessageProducerUsers {
     @Value("${rabbitmq.users.routing.deleted}")
     private String deletedRK;
 
-    public void sendUsersCreateEvent(UsersCreatedEvent event){
-        rabbitTemplate.convertAndSend(usersExchange,createdRK,event);
-        log.info("📤 [PRODUCER] Evento enviado para RabbitMQ: {}", event);
+    public void sendEvent(EventDTO<?> event) {
+
+        String routingKey = resolveRoutingKey(event.type().toString());
+
+        rabbitTemplate.convertAndSend(usersExchange, routingKey, event);
+
+        log.info("📤 Evento enviado | type={} routingKey={} recipients={}",
+                event.type(), routingKey, event.recipients());
     }
 
-    public void sendProviderUpdateEvent(UsersUpdatedEvent event){
-        rabbitTemplate.convertAndSend(usersExchange,updatedRK,event);
-        log.info("📤 [PRODUCER] Evento enviado para RabbitMQ: {}", event);
-    }
-
-    public void sendProviderDeleteEvent(UsersDeletedEvent event){
-        rabbitTemplate.convertAndSend(usersExchange,deletedRK,event);
-        log.info("📤 [PRODUCER] Evento enviado para RabbitMQ: {}", event);
+    private String resolveRoutingKey(String type) {
+        return switch (type) {
+            case "USER_CREATED" -> createdRK;
+            case "USER_UPDATED" -> updatedRK;
+            case "USER_DELETED" -> deletedRK;
+            default -> throw new IllegalArgumentException("Tipo de evento desconhecido: " + type);
+        };
     }
 }

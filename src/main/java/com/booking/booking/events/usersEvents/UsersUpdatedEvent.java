@@ -11,7 +11,6 @@ public class UsersUpdatedEvent {
     private Long id;
     private String name;
     private String email;
-    private String password;
     private String roles;
     private LocalDateTime createdAt;
     private LocalDateTime eventTs = LocalDateTime.now();

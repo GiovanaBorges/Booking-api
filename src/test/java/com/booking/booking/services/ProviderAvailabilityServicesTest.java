@@ -4,7 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -12,341 +13,373 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
-import com.booking.booking.DTO.ProviderAvailabilityRequestDTO;
-import com.booking.booking.DTO.ProviderAvailabilityResponseDTO;
+import com.booking.booking.DTO.requests.ProviderAvailabilityRequestDTO;
+import com.booking.booking.DTO.responses.ProviderAvailabilityResponseDTO;
 import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityCreatedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityDeletedEvent;
 import com.booking.booking.events.providerEvents.ProviderAvailabilityUpdatedEvent;
 import com.booking.booking.exceptions.ApiException;
+import com.booking.booking.mappers.ProviderAvailabilityMapper;
+import com.booking.booking.mappers.events.ProviderAvailabilityEventMapper;
 import com.booking.booking.models.ProviderAvailability;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.ProviderAvailabilityRepository;
-import com.booking.booking.repositories.UsersRepository;
+import com.booking.booking.services.helpers.ProviderAvailabilityResolver;
+import com.booking.booking.services.helpers.UserResolver;
 import com.booking.booking.services.rabbitMQEvents.MessageProducerProvider;
 
 @ExtendWith(MockitoExtension.class)
 public class ProviderAvailabilityServicesTest {
 
-    @Mock
-    private ProviderAvailabilityRepository repository;
+        @Mock
+        private ProviderAvailabilityRepository repository;
 
-    @Mock
-    private UsersRepository usersRepository;
+        @Mock
+        private MessageProducerProvider messageProducerProvider;
 
-    @Mock
-    private MessageProducerProvider messageProducerProvider;
+        @InjectMocks
+        private ProviderAvailabilityservices service;
 
-    @Mock
-    private LockService idempotencyService;
+        @Mock
+        private UserResolver userResolver;
 
-    @InjectMocks
-    private ProviderAvailabilityservices service;
+        @Mock
+        private ProviderAvailabilityMapper providerAvailabilityMapper;
 
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this);
-    }
+        @Mock
+        private ProviderAvailabilityEventMapper providerEventMapper;
 
-    @Test
-    void shouldCreateProvider() {
+        @Mock
+        private ProviderAvailabilityCreatedEvent providerAvailabilityCreatedEvent;
 
-        Users user = Users.builder()
-                .id(1L)
-                .email("email@email.com")
-                .name("user1")
-                .keycloakId("kc-test-123")
-                .roles(RolesENUM.PROVIDER)
-                .build();
+        @Mock
+        private ProviderAvailabilityDeletedEvent providerAvailabilityDeletedEvent;
 
-        ProviderAvailability provider = ProviderAvailability.builder()
-                .id(1L)
-                .day_of_week(5)
-                .start_time(LocalTime.now())
-                .end_time(LocalTime.now())
-                .provider(user)
-                .build();
+        @Mock
+        private ProviderAvailabilityUpdatedEvent providerAvailabilityUpdatedEvent;
 
-        ProviderAvailabilityRequestDTO requestDTO = new ProviderAvailabilityRequestDTO(
-                provider.getDay_of_week(),
-                provider.getStart_time(),
-                provider.getEnd_time(),
-                user.getId());
+        @Mock
+        private ProviderAvailabilityResolver providerAvailabilityResolver;
 
-        when(usersRepository.findById(user.getId()))
-                .thenReturn(Optional.of(user));
+        @Mock
+        private AuthenticatedUserService authUserService;
 
-        when(repository.save(any(ProviderAvailability.class)))
-                .thenAnswer(invocation -> {
-                    ProviderAvailability p = invocation.getArgument(0);
-                    p.setId(1L);
-                    return p;
+        @BeforeEach
+        void setup() {
+
+                Users user = Users.builder()
+                                .id(1L)
+                                .email("email@email.com")
+                                .name("user1")
+                                .keycloakId("kc-test-123")
+                                .roles(RolesENUM.PROVIDER)
+                                .build();
+
+                ProviderAvailability provider = ProviderAvailability.builder()
+                                .id(1L)
+                                .dayOfWeek(5)
+                                .startTime(LocalTime.of(9, 0))
+                                .endTime(LocalTime.of(18, 0))
+                                .provider(user)
+                                .build();
+
+                lenient().when(userResolver.resolveUserById(any()))
+                                .thenReturn(user);
+
+                lenient().when(userResolver.getAuthenticatedUser())
+                                .thenReturn(user);
+
+                lenient().when(providerAvailabilityResolver.resolveProviderById(any()))
+                                .thenReturn(provider);
+
+                lenient().when(repository.save(any()))
+                                .thenAnswer(inv -> inv.getArgument(0));
+
+                lenient().when(providerAvailabilityMapper.toEntity(any()))
+                                .thenReturn(provider);
+
+                lenient().when(providerAvailabilityMapper.toResponse(any()))
+                                .thenReturn(
+                                                new ProviderAvailabilityResponseDTO(
+                                                                1L,
+                                                                5,
+                                                                LocalTime.of(9, 0),
+                                                                LocalTime.of(18, 0),
+                                                                user));
+
+                lenient().when(providerEventMapper.toCreateEvent(any()))
+                                .thenReturn(
+                                                ProviderAvailabilityCreatedEvent.builder().build());
+
+                lenient().when(providerEventMapper.toDeletedEvent(any()))
+                                .thenReturn(ProviderAvailabilityDeletedEvent.builder().build());
+
+                lenient().when(providerEventMapper.toUpdatedEvent(any()))
+                                .thenReturn(ProviderAvailabilityUpdatedEvent.builder().build());
+        }
+
+        @Test
+        void shouldCreateProvider() {
+
+                Users user = Users.builder()
+                                .id(1L)
+                                .email("email@email.com")
+                                .name("user1")
+                                .keycloakId("kc-test-123")
+                                .roles(RolesENUM.PROVIDER)
+                                .build();
+
+                ProviderAvailability entity = ProviderAvailability.builder()
+                                .id(1L)
+                                .dayOfWeek(5)
+                                .startTime(LocalTime.of(9, 0))
+                                .endTime(LocalTime.of(18, 0))
+                                .build(); 
+
+                ProviderAvailabilityRequestDTO request = new ProviderAvailabilityRequestDTO(
+                                5,
+                                LocalTime.of(9, 0),
+                                LocalTime.of(18, 0));
+
+                when(userResolver.getAuthenticatedUser()).thenReturn(user);
+
+                when(providerAvailabilityMapper.toEntity(request))
+                                .thenReturn(entity);
+
+                when(repository.save(any()))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                when(providerAvailabilityMapper.toResponse(any()))
+                                .thenReturn(new ProviderAvailabilityResponseDTO(
+                                                1L,
+                                                5,
+                                                LocalTime.of(9, 0),
+                                                LocalTime.of(18, 0),
+                                                user));
+
+                when(providerEventMapper.toCreateEvent(any()))
+                                .thenReturn(ProviderAvailabilityCreatedEvent.builder().build());
+
+                ProviderAvailabilityResponseDTO response = service.saveProviderAvailability(request);
+
+                assertAll(
+                                () -> assertEquals(1L, response.id()),
+                                () -> assertEquals(5, response.dayOfWeek()));
+
+                verify(repository).save(argThat(saved -> saved.getProvider().equals(user)));
+
+                verify(messageProducerProvider).sendEvent(any());
+        }
+
+        @Test
+        void shouldFindProviderById() {
+                ProviderAvailabilityResponseDTO response = service.findProviderById(1L);
+
+                assertAll(
+                                () -> assertEquals(1L, response.id()),
+                                () -> assertEquals(5, response.dayOfWeek()));
+
+                verify(providerAvailabilityResolver).resolveProviderById(1L);
+                verify(providerAvailabilityMapper).toResponse(any());
+        }
+
+        @Test
+        void shouldReturnErrorOnGetProviderById() {
+                when(providerAvailabilityResolver.resolveProviderById(99L))
+                                .thenThrow(
+                                                new ApiException("PROVIDER AVAILABILITY NOT FOUND",
+                                                                HttpStatus.NOT_FOUND));
+
+                ApiException exception = assertThrows(ApiException.class, () -> {
+                        service.findProviderById(99L);
+                });
+                assertAll(
+                                () -> assertEquals("PROVIDER AVAILABILITY NOT FOUND", exception.getMessage()),
+                                () -> assertEquals(HttpStatus.NOT_FOUND, exception.getStatus()));
+
+                verify(providerAvailabilityResolver).resolveProviderById(99L);
+                verify(providerAvailabilityMapper, never()).toResponse(any());
+        }
+
+        @Test
+        void shouldDeleteProviderAvailability() {
+                service.deleteProviderById(1L);
+
+                verify(providerAvailabilityResolver).resolveProviderById(1L);
+                verify(repository).deleteById(1L);
+                verify(providerEventMapper)
+                                .toDeletedEvent(any(ProviderAvailability.class));
+                // ================
+                // RabbitMQ VERIFY
+                // ================
+                verify(messageProducerProvider)
+                                .sendEvent(any());
+        }
+
+        @Test
+        void shoulReturnErrorOnDeleteProvider() {
+                when(providerAvailabilityResolver.resolveProviderById(1L))
+                                .thenThrow(new ApiException("PROVIDER AVAILABILITY NOT FOUND", HttpStatus.NOT_FOUND));
+                ApiException exception = assertThrows(ApiException.class, () -> {
+                        service.deleteProviderById(1L);
+                });
+                assertAll(
+                                () -> assertEquals("PROVIDER AVAILABILITY NOT FOUND", exception.getMessage()),
+                                () -> assertEquals(HttpStatus.NOT_FOUND, exception.getStatus()));
+        }
+
+        @Test
+        void shouldUpdateProviderAvailabilitySuccessfully() {
+
+                Users user = Users.builder()
+                                .id(1L)
+                                .email("email@email.com")
+                                .name("user1")
+                                .keycloakId("kc-test-123")
+                                .roles(RolesENUM.PROVIDER)
+                                .build();
+
+                ProviderAvailability provider = ProviderAvailability.builder()
+                                .id(1L)
+                                .dayOfWeek(5)
+                                .startTime(LocalTime.of(9, 0))
+                                .endTime(LocalTime.of(18, 0))
+                                .provider(user)
+                                .build();
+
+                ProviderAvailabilityRequestDTO request = new ProviderAvailabilityRequestDTO(
+                                6,
+                                LocalTime.of(14, 0),
+                                LocalTime.of(18, 0));
+
+                when(providerAvailabilityResolver.resolveProviderById(1L)).thenReturn(provider);
+
+                ProviderAvailabilityResponseDTO response = service.updateProvider(1L, request);
+
+                // VERIFY
+                assertEquals(provider.getId(), response.id());
+
+                // repository interactions
+                verify(providerAvailabilityResolver, times(1)).resolveProviderById(1L);
+                verify(repository, times(1)).save(provider);
+                verify(providerAvailabilityMapper, times(1)).updateEntity(request, provider);
+
+                verify(providerEventMapper, times(1)).toUpdatedEvent(provider);
+                // Evento enviado ao RabbitMQ
+                verify(messageProducerProvider, times(1))
+                                .sendEvent(any());
+        }
+
+        @Test
+        void shouldGetAllProvider() {
+                Users user = Users.builder()
+                                .id(1L)
+                                .email("email@email.com")
+                                .name("user1")
+                                .keycloakId("kc-test-123")
+                                .roles(RolesENUM.PROVIDER)
+                                .build();
+
+                ProviderAvailability provider = ProviderAvailability.builder()
+                                .id(1L)
+                                .dayOfWeek(4)
+                                .startTime(LocalTime.now())
+                                .endTime(LocalTime.now())
+                                .provider(user)
+                                .build();
+
+                ProviderAvailability provider1 = ProviderAvailability.builder()
+                                .id(2L)
+                                .dayOfWeek(6)
+                                .startTime(LocalTime.now())
+                                .endTime(LocalTime.now())
+                                .provider(user)
+                                .build();
+
+                when(repository.findAll()).thenReturn(List.of(provider, provider1));
+
+                List<ProviderAvailabilityResponseDTO> responseDTO = service.getAllProvider();
+
+                assertEquals(2, responseDTO.size());
+                verify(repository, times(1)).findAll();
+        }
+
+        @Test
+        void shouldReturnErrorOnGetAllProviders() {
+                when(repository.findAll()).thenReturn(List.of());
+
+                ApiException exception = assertThrows(ApiException.class,
+                                () -> service.getAllProvider());
+
+                assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+
+                verify(repository, times(1)).findAll();
+        }
+
+        @Test
+        void shouldThrowForbiddenWhenDeletingOtherUserProvider() {
+
+                Users loggedUser = Users.builder()
+                                .id(2L)
+                                .build();
+
+                Users owner = Users.builder()
+                                .id(1L)
+                                .build();
+
+                ProviderAvailability provider = ProviderAvailability.builder()
+                                .id(1L)
+                                .provider(owner)
+                                .build();
+
+                when(userResolver.getAuthenticatedUser()).thenReturn(loggedUser);
+                when(providerAvailabilityResolver.resolveProviderById(1L)).thenReturn(provider);
+
+                ApiException exception = assertThrows(ApiException.class, () -> {
+                        service.deleteProviderById(1L);
                 });
 
-        // 🔑 Idempotency mock: executa direto a action
-        when(idempotencyService.execute(any(), any()))
-                .thenAnswer(invocation -> {
-                    Supplier<?> supplier = invocation.getArgument(1);
-                    return supplier.get();
-                });
+                assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
 
-        ProviderAvailabilityResponseDTO responseDTO = service.saveProviderAvailability(requestDTO, "idem-key-123");
+                verify(repository, never()).deleteById(any());
+        }
 
-        assertAll(
-                () -> assertEquals(provider.getId(), responseDTO.id()),
-                () -> assertEquals(provider.getDay_of_week(), responseDTO.day_of_week()),
-                () -> assertEquals(provider.getStart_time(), responseDTO.start_time()),
-                () -> assertEquals(provider.getEnd_time(), responseDTO.end_time()),
-                () -> assertEquals(provider.getProvider(), responseDTO.provider()));
+        @Test
+        void shouldGetMyAvailabilities() {
 
-        verify(usersRepository, times(1)).findById(user.getId());
-        verify(repository, times(1)).save(any(ProviderAvailability.class));
-        verify(messageProducerProvider, times(1))
-                .sendProviderCreateEvent(any(ProviderAvailabilityCreatedEvent.class));
-    }
+                Users user = Users.builder().id(1L).build();
 
-    @Test
-    void shouldThrowConflictWhenIdempotencyKeyAlreadyExists() {
+                ProviderAvailability provider = ProviderAvailability.builder()
+                                .id(1L)
+                                .provider(user)
+                                .build();
 
-        // ===== GIVEN =====
-        ProviderAvailabilityRequestDTO requestDTO = new ProviderAvailabilityRequestDTO(
-                5,
-                LocalTime.of(9, 0),
-                LocalTime.of(18, 0),
-                1L);
+                when(authUserService.getAuthenticatedUser()).thenReturn(user);
+                when(repository.findByProvider(user)).thenReturn(List.of(provider));
 
-        // Simula Redis dizendo: "essa chave já foi usada"
-        when(idempotencyService.execute(any(), any()))
-                .thenThrow(new ApiException(
-                        "Request already processed",
-                        HttpStatus.CONFLICT));
+                when(providerAvailabilityMapper.toResponse((any())))
+                        .thenReturn(new ProviderAvailabilityResponseDTO(
+                                1L,
+                                5,
+                                LocalTime.of(9,0),
+                                LocalTime.of(18,0),
+                                user
+                        ));
+                
+                List<ProviderAvailabilityResponseDTO> response = service.getMyAvailabilities();
 
-        // ===== WHEN / THEN =====
-        ApiException exception = assertThrows(
-                ApiException.class,
-                () -> service.saveProviderAvailability(requestDTO, "idem-key-123"));
+                assertEquals(1, response.size());
 
-        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-
-        // ===== VERIFY: nada aconteceu =====
-        verify(usersRepository, never()).findById(any());
-        verify(repository, never()).save(any());
-        verify(messageProducerProvider, never())
-                .sendProviderCreateEvent(any());
-    }
-
-    @Test
-    void shouldFindProviderById() {
-        Users user = Users.builder()
-                .id(1L)
-                .email("email@email.com")
-                .name("user1")
-                .keycloakId("kc-test-123")
-                .roles(RolesENUM.PROVIDER)
-                .build();
-
-        ProviderAvailability provider = ProviderAvailability.builder()
-                .id(1L)
-                .day_of_week(5)
-                .start_time(LocalTime.now())
-                .end_time(LocalTime.now())
-                .provider(user)
-                .build();
-
-        when(repository.findById(provider.getId())).thenReturn(Optional.of(provider));
-
-        ProviderAvailabilityResponseDTO responseDTO = service.findProviderById(1L);
-
-        assertAll(
-                () -> assertEquals(provider.getId(), responseDTO.id()),
-                () -> assertEquals(provider.getDay_of_week(), responseDTO.day_of_week()),
-                () -> assertEquals(provider.getEnd_time(), responseDTO.end_time()),
-                () -> assertEquals(provider.getProvider(), responseDTO.provider()),
-                () -> assertEquals(provider.getStart_time(), responseDTO.start_time()));
-    }
-
-    @Test
-    void shouldReturnErrorOnGetPedidoById() {
-        when(repository.findById(1L)).thenReturn(Optional.empty());
-
-        ApiException exception = assertThrows(ApiException.class, () -> {
-            service.findProviderById(1L);
-        });
-        assertAll(
-                () -> assertEquals("Provider availability not found", exception.getMessage()),
-                () -> assertEquals(HttpStatus.NOT_FOUND, exception.getStatus()));
-    }
-
-    @Test
-    void shouldDeleteProviderAvailability() {
-        Users user = Users.builder()
-                .id(1L)
-                .email("email@email.com")
-                .name("user1")
-                .keycloakId("kc-test-123")
-                .roles(RolesENUM.PROVIDER)
-                .build();
-
-        ProviderAvailability provider = ProviderAvailability.builder()
-                .id(1L)
-                .day_of_week(5)
-                .start_time(LocalTime.now())
-                .end_time(LocalTime.now())
-                .provider(user)
-                .build();
-
-        when(repository.findById(provider.getId())).thenReturn(Optional.of(provider));
-        doNothing().when(repository).deleteById(1L);
-
-        ProviderAvailabilityResponseDTO responseDTO = service.deleteProviderById(provider.getId());
-
-        assertAll(
-                () -> assertEquals(provider.getId(), responseDTO.id()),
-                () -> assertEquals(provider.getDay_of_week(), responseDTO.day_of_week()),
-                () -> assertEquals(provider.getEnd_time(), responseDTO.end_time()),
-                () -> assertEquals(provider.getProvider(), responseDTO.provider()),
-                () -> assertEquals(provider.getStart_time(), responseDTO.start_time()));
-
-        // ================
-        // RabbitMQ VERIFY
-        // ================
-        verify(messageProducerProvider, times(1))
-                .sendProviderDeleteEvent(any(ProviderAvailabilityDeletedEvent.class));
-    }
-
-    @Test
-    void shoulReturnErrorOnDeleteProvider() {
-        when(repository.findById(1L)).thenReturn(Optional.empty());
-        ApiException exception = assertThrows(ApiException.class, () -> {
-            service.deleteProviderById(1L);
-        });
-        assertAll(
-                () -> assertEquals("Provider availability not found", exception.getMessage()),
-                () -> assertEquals(HttpStatus.NOT_FOUND, exception.getStatus()));
-    }
-
-    @Test
-    void shouldUpdateProviderAvailabilitySuccessfully() {
-
-        Users user = Users.builder()
-                .id(10L)
-                .email("provider@test.com")
-                .name("Provider")
-                .keycloakId("kc-test-123")
-                .roles(RolesENUM.PROVIDER)
-                .build();
-
-        ProviderAvailability existing = ProviderAvailability.builder()
-                .id(1L)
-                .day_of_week(2)
-                .start_time(LocalTime.of(8, 0))
-                .end_time(LocalTime.of(12, 0))
-                .provider(user)
-                .build();
-
-        ProviderAvailabilityRequestDTO request = new ProviderAvailabilityRequestDTO(
-                6,
-                LocalTime.of(14, 0),
-                LocalTime.of(18, 0),
-                10L);
-
-        when(repository.findById(1L)).thenReturn(Optional.of(existing));
-        when(usersRepository.findById(10L)).thenReturn(Optional.of(user));
-        when(repository.save(any(ProviderAvailability.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // EXECUTE
-        ProviderAvailabilityResponseDTO response = service.updateProvider(1L, request);
-
-        // VERIFY
-        assertAll(
-                () -> assertEquals(1L, response.id()),
-                () -> assertEquals(6, response.day_of_week()),
-                () -> assertEquals(LocalTime.of(14, 0), response.start_time()),
-                () -> assertEquals(LocalTime.of(18, 0), response.end_time()),
-                () -> assertEquals(user, response.provider()));
-
-        // repository interactions
-        verify(repository, times(1)).findById(1L);
-        verify(usersRepository, times(1)).findById(10L);
-        verify(repository, times(1)).save(existing);
-
-        // Evento enviado ao RabbitMQ
-        verify(messageProducerProvider, times(1))
-                .sendProviderUpdateEvent(any(ProviderAvailabilityUpdatedEvent.class));
-    }
-
-    @Test
-    void shouldThrowExceptionWhenProviderAvailabilityNotFound() {
-        when(repository.findById(99L)).thenReturn(Optional.empty());
-
-        ProviderAvailabilityRequestDTO request = new ProviderAvailabilityRequestDTO(
-                5, LocalTime.now(), LocalTime.now(), 1L);
-
-        Assertions.assertThrows(ApiException.class, () -> {
-            service.updateProvider(99L, request);
-        });
-
-        verify(repository, times(1)).findById(99L);
-        verify(messageProducerProvider, never()).sendProviderUpdateEvent(any());
-    }
-
-    @Test
-    void shouldGetAllProvider() {
-        Users user = Users.builder()
-                .id(1L)
-                .email("email@email.com")
-                .name("user1")
-                .keycloakId("kc-test-123")
-                .roles(RolesENUM.PROVIDER)
-                .build();
-
-        ProviderAvailability provider = ProviderAvailability.builder()
-                .id(1L)
-                .day_of_week(4)
-                .start_time(LocalTime.now())
-                .end_time(LocalTime.now())
-                .provider(user)
-                .build();
-
-        ProviderAvailability provider1 = ProviderAvailability.builder()
-                .id(2L)
-                .day_of_week(6)
-                .start_time(LocalTime.now())
-                .end_time(LocalTime.now())
-                .provider(user)
-                .build();
-
-        when(repository.findAll()).thenReturn(List.of(provider, provider1));
-        List<ProviderAvailabilityResponseDTO> responseDTO = service.getAllProvider();
-        assertAll(
-                () -> assertEquals(provider.getId(), responseDTO.get(0).id()),
-                () -> assertEquals(provider.getDay_of_week(), responseDTO.get(0).day_of_week()),
-                () -> assertEquals(provider.getEnd_time(), responseDTO.get(0).end_time()),
-                () -> assertEquals(provider.getProvider(), responseDTO.get(0).provider()),
-                () -> assertEquals(provider.getStart_time(), responseDTO.get(0).start_time()));
-    }
-
-    @Test
-    void shouldReturnErrorOnGetAllProviders() {
-        when(repository.findAll()).thenReturn(List.of());
-        ApiException exception = assertThrows(ApiException.class, () -> {
-            service.getAllProvider();
-        });
-        assertAll(
-                () -> assertEquals("Provider availability not found", exception.getMessage()),
-                () -> assertEquals(HttpStatus.NOT_FOUND, exception.getStatus()));
-    }
+                verify(repository).findByProvider(user);
+        }
 }

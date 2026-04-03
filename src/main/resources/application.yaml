@@ -10,3 +10,16 @@ spring:
             resourceserver:
                 jwt:
                     issuer-uri: http://localhost:8080/realms/Bookings
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /documentation/swagger-ui/index.html
+    operationsSorter: method
+    disable-swagger-default-url: true
+  packagesToScan: com.booking.booking.controllers
+
+server:
+  servlet:
+    context-path: /
+

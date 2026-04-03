@@ -2,11 +2,12 @@ server:
   port: 8081
 
 spring:
+
   datasource:
-    url: jdbc:h2:mem:bookingdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mysql://localhost:3306/booking_db?createDatabaseIfNotExist=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: booking_user
+    password: booking_pass
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}    
@@ -16,93 +17,111 @@ spring:
  
   jpa:
     hibernate:
+    #config para jpa nao criar tabelas automaticamente
       ddl-auto: update
     show-sql: true
+
+  flyway:
+    enabled: true
+    clean-disabled: false
+    locations:
+    - classpath:db/migration
+    - classpath:db/dev
+    - classpath:db/dev/seed
 
   h2:
     console:
       enabled: true
       path: /h2-console
 
+
 rabbitmq:
 # ============================================
 # PROVIDER AVAILABILITY EVENT CONFIG
 # ============================================
   provider:
-    exchange: ${RABBITMQ_PROVIDER_EXCHANGE}
+    exchange: ${RABBITMQ_PROVIDER_EXCHANGE:provider.exchange}
     routing:
-      created: ${RABBITMQ_PROVIDER_ROUTING_CREATED}
-      updated: ${RABBITMQ_PROVIDER_ROUTING_UPDATED}
-      deleted: ${RABBITMQ_PROVIDER_ROUTING_DELETED}
+      created: ${RABBITMQ_PROVIDER_ROUTING_CREATED:provider.routing.created}
+      updated: ${RABBITMQ_PROVIDER_ROUTING_UPDATED:provider.routing.updated}
+      deleted: ${RABBITMQ_PROVIDER_ROUTING_DELETED:provider.routing.deleted}
 
     queue:
-      created: ${RABBITMQ_PROVIDER_QUEUE_CREATED}
-      updated: ${RABBITMQ_PROVIDER_QUEUE_UPDATED}
-      deleted: ${RABBITMQ_PROVIDER_QUEUE_DELETED}
+      created: ${RABBITMQ_PROVIDER_QUEUE_CREATED:provider.queue.created}
+      updated: ${RABBITMQ_PROVIDER_QUEUE_UPDATED:provider.queue.updated}
+      deleted: ${RABBITMQ_PROVIDER_QUEUE_DELETED:provider.queue.deleted}
 
     dlq:
-      created: ${RABBITMQ_PROVIDER_DLQ_CREATED}
-      updated: ${RABBITMQ_PROVIDER_DLQ_UPDATED}
-      deleted: ${RABBITMQ_PROVIDER_DLQ_DELETED}
+      created: ${RABBITMQ_PROVIDER_DLQ_CREATED:provider.dlq.created}
+      updated: ${RABBITMQ_PROVIDER_DLQ_UPDATED:provider.dlq.updated}
+      deleted: ${RABBITMQ_PROVIDER_DLQ_DELETED:provider.dlq.deleted}
 
 # ============================================
 # USERS AVAILABILITY EVENT CONFIG
 # ============================================
 
   users:
-    exchange: ${RABBITMQ_USERS_EXCHANGE}
+    exchange: ${RABBITMQ_USERS_EXCHANGE:users.exchange}
     routing:
-      created: ${RABBITMQ_USERS_ROUTING_CREATED}
-      updated: ${RABBITMQ_USERS_ROUTING_UPDATED}
-      deleted: ${RABBITMQ_USERS_ROUTING_DELETED}
+      created: ${RABBITMQ_USERS_ROUTING_CREATED:users.routing.created}
+      updated: ${RABBITMQ_USERS_ROUTING_UPDATED:users.routing.updated}
+      deleted: ${RABBITMQ_USERS_ROUTING_DELETED:users.routing.deleted}
 
     queue:
-      created: ${RABBITMQ_USERS_QUEUE_CREATED}
-      updated: ${RABBITMQ_USERS_QUEUE_UPDATED}
-      deleted: ${RABBITMQ_USERS_QUEUE_DELETED}
+      created: ${RABBITMQ_USERS_QUEUE_CREATED:users.queue.created}
+      updated: ${RABBITMQ_USERS_QUEUE_UPDATED:users.queue.updated}
+      deleted: ${RABBITMQ_USERS_QUEUE_DELETED:users.queue.deleted}
 
     dlq:
-      created: ${RABBITMQ_USERS_DLQ_CREATED}
-      updated: ${RABBITMQ_USERS_DLQ_UPDATED}
-      deleted: ${RABBITMQ_USERS_DLQ_DELETED} 
-  
+      created: ${RABBITMQ_USERS_DLQ_CREATED:users.dlq.created}
+      updated: ${RABBITMQ_USERS_DLQ_UPDATED:users.dlq.updated}
+      deleted: ${RABBITMQ_USERS_DLQ_DELETED:users.dlq.deleted}
+
 # ============================================
 # BOOKING AVAILABILITY EVENT CONFIG
 # ============================================
 
   booking:
-    exchange: ${RABBITMQ_BOOKING_EXCHANGE}
+    exchange: ${RABBITMQ_BOOKING_EXCHANGE:booking.exchange}
     routing:
-      created: ${RABBITMQ_BOOKING_ROUTING_CREATED}
-      updated: ${RABBITMQ_BOOKING_ROUTING_UPDATED}
-      deleted: ${RABBITMQ_BOOKING_ROUTING_DELETED}
+      created: ${RABBITMQ_BOOKING_ROUTING_CREATED:booking.routing.created}
+      updated: ${RABBITMQ_BOOKING_ROUTING_UPDATED:booking.routing.updated}
+      deleted: ${RABBITMQ_BOOKING_ROUTING_DELETED:booking.routing.deleted}
 
     queue:
-      created: ${RABBITMQ_BOOKING_QUEUE_CREATED}
-      updated: ${RABBITMQ_BOOKING_QUEUE_UPDATED}
-      deleted: ${RABBITMQ_BOOKING_QUEUE_DELETED}
+      created: ${RABBITMQ_BOOKING_QUEUE_CREATED:booking.queue.created}
+      updated: ${RABBITMQ_BOOKING_QUEUE_UPDATED:booking.queue.updated}
+      deleted: ${RABBITMQ_BOOKING_QUEUE_DELETED:booking.queue.deleted}
 
     dlq:
-      created: ${RABBITMQ_BOOKING_DLQ_CREATED}
-      updated: ${RABBITMQ_BOOKING_DLQ_UPDATED}
-      deleted: ${RABBITMQ_BOOKING_DLQ_DELETED} 
-  
+      created: ${RABBITMQ_BOOKING_DLQ_CREATED:booking.dlq.created}
+      updated: ${RABBITMQ_BOOKING_DLQ_UPDATED:booking.dlq.updated}
+      deleted: ${RABBITMQ_BOOKING_DLQ_DELETED:booking.dlq.deleted}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, prometheus
+        include: health, info, metrics, prometheus, circuitbreakers, circuitbreakerevents, caches, ratelimiters
+
   metrics:
     tags:
       application: ${spring.application.name}
   endpoint:
-    prometheus:
-      enabled: true
+      health:
+        show-details: always
+    
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   otlp:
     tracing:
       endpoint: http://localhost:4317
      
 logging:
   level:
-    org.springframework.security: DEBUG
+    root: INFO
+    "[org.springframework.amqp.rabbit.core.RabbitTemplate]": DEBUG
+    "[org.springframework.amqp.rabbit.listener]": DEBUG
+

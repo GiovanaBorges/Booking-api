@@ -1,0 +1,13 @@
+package com.booking.booking.ENUMS;
+
+public enum EventTypeEnum {
+    BOOKING_CREATED,
+    BOOKING_UPDATED,
+    BOOKING_DELETED,
+    USER_CREATED,
+    USER_UPDATED,
+    USER_DELETED,
+    PROVIDER_CREATED,
+    PROVIDER_UPDATED,
+    PROVIDER_DELETED
+}

@@ -43,13 +43,19 @@ public class Bookings {
     private Users customer;
 
     @Column(name = "start_ts")
-    private LocalDateTime  startsTs;
+    private LocalDateTime  startTs;
 
     @Column(name = "end_ts")
     private LocalDateTime endTs;
 
     @Enumerated(EnumType.STRING)
     private StatusENUM status;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @CreatedDate
     @Column(updatable = false)

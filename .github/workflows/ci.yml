@@ -8,16 +8,21 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    environment: dev
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Load .env da pasta config
-        uses: ./.github/actions/setup-dotenv
-        with:
-          path: ".env.example"
-
+      - name: Mostrar .env (sanitizado)
+        shell: bash
+        run: |
+          echo "Conteúdo do .env no CI:"
+          sed -E \
+            -e 's/(RABBITMQ_PASSWORD=).*/\1****/' \
+            -e 's/(RABBITMQ_USERNAME=).*/\1****/' \
+          .env
+          
        # --------------- SETUP JAVA + MAVEN ---------------
       - name: Setup Java + Maven
         uses: ./.github/actions/setup-java-maven
