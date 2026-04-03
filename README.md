@@ -2,9 +2,20 @@
 
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Spring Boot](https://img.shields.io/badge/SpringBoot-3.x-brightgreen)
-![RabbitMQ](https://img.shields.io/badge/RabbitMQ-Event--Driven-orange)
-![Tests](https://img.shields.io/badge/Tests-JUnit%20%7C%20Mockito-blue)
 ![Resilience](https://img.shields.io/badge/Resilience-Resilience4j-purple)
+![Spring Security](https://img.shields.io/badge/Security-SpringSecurity-green)
+![OAuth2](https://img.shields.io/badge/Auth-OAuth2-black)
+![Keycloak](https://img.shields.io/badge/Auth-Keycloak-red)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-Documentation-green)
+![Swagger](https://img.shields.io/badge/Swagger-UI-brightgreen)
+![MySQL](https://img.shields.io/badge/Database-MySQL-blue)
+![Redis](https://img.shields.io/badge/Cache-Redis-red)
+![Flyway](https://img.shields.io/badge/Migrations-Flyway-red)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-Event--Driven-orange)
+![MapStruct](https://img.shields.io/badge/Mapping-MapStruct-blue)
+![Tests](https://img.shields.io/badge/Tests-JUnit%20%7C%20Mockito-blue)
+![Docker](https://img.shields.io/badge/Container-Docker-blue)
+![CI](https://img.shields.io/badge/CI-GitHubActions-blue)
 [![codecov](https://codecov.io/gh/GiovanaBorges/Booking-api/branch/main/graph/badge.svg)](https://codecov.io/gh/GiovanaBorges/Booking-api)
 
 
@@ -247,6 +258,74 @@ The API expects **JWT tokens issued by Keycloak** and uses a custom converter to
 
 ---
 
+# Documentation
+
+### 📚 API Documentation (Swagger / OpenAPI)
+
+This project uses **Swagger (OpenAPI)** to provide interactive API documentation.
+
+It allows you to:
+
+* 📌 Explore all available endpoints
+* 📌 Test requests directly from your browser
+* 📌 View request and response examples
+* 📌 Understand parameters, authentication, and status codes
+
+---
+
+### 🚀 How to Access
+
+After starting the application, you can access the documentation at:
+
+```
+http://localhost:8081/documentation/swagger-ui/swagger-ui/index.html
+```
+
+---
+
+### 🔍 What You Can Do in Swagger UI
+
+* Execute API requests (`GET`, `POST`, `PUT`, `DELETE`)
+* Provide parameters and request bodies (JSON)
+* View real-time API responses
+* Test secured endpoints
+
+---
+
+### 🔐 Authentication
+
+If the API is secured (e.g., JWT / OAuth2), click the **"Authorize"** button in Swagger UI and provide your token in the following format:
+
+```
+Bearer YOUR_TOKEN_HERE
+```
+
+---
+
+### 🛠️ Technologies Used
+
+* Spring Boot
+* Springdoc OpenAPI
+* Swagger UI
+
+---
+
+### 📎 Dependency
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+</dependency>
+```
+
+---
+
+### 💡 Note
+
+Make sure the application is running before accessing the Swagger UI.
+
+
 # Observability
 
 The application exposes metrics through **Spring Boot Actuator** and **Micrometer**.
@@ -285,6 +364,7 @@ These metrics help monitor the health and performance of the service.
 | Docker          | Containerization                 |
 | Makefile        | DevOps automation                |
 | JaCoCo          | Code coverage                    |
+| Swagger/OpenaApi| Documentation                    |
 
 ---
 
