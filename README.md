@@ -44,6 +44,36 @@ This architecture allows services to remain loosely coupled and react to busines
 
 ---
 
+## Running the Project Locally
+
+To run the Booking project locally, you just need Docker and Docker Compose installed. The project is fully containerized, including the backend, database, Redis, RabbitMQ, and Keycloak.
+
+Clone the repository:
+git clone https://github.com/GiovanaBorges/Booking-api.git
+cd Booking-api
+Start the services:
+docker-compose up -d
+
+This will spin up all necessary services:
+
+* MySQL for the Booking database
+* Redis for caching
+* RabbitMQ for messaging
+* Keycloak for authentication and authorization
+* Booking API backend
+* Access the services:
+* Booking API – http://localhost:8080
+* Keycloak admin console – http://localhost:8080 (username: admin, password: admin123)
+* RabbitMQ management – http://localhost:15672
+
+### Stop the services:
+
+```
+docker-compose down
+```
+
+This setup allows you to run the entire system locally without needing additional installations.
+
 # Architecture Diagram
 
 The system follows a microservices-oriented architecture where the Booking API is responsible for managing bookings and publishing domain events.
@@ -424,7 +454,7 @@ These metrics help monitor the health and performance of the service.
 | Makefile        | DevOps automation                |
 | JaCoCo          | Code coverage                    |
 | Swagger/OpenaApi| Documentation                    |
-
+| Flyway          | Migration                        |
 ---
 
 # Automation
