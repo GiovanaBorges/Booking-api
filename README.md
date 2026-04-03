@@ -235,6 +235,65 @@ Benefits:
 
 ---
 
+## 🛠️ Database Migrations (Flyway)
+
+This project uses **Flyway** to handle database schema management.
+
+Currently, the database structure is initialized through a single migration script responsible for creating the schema, tables, and indexes.
+
+---
+
+### 🚀 Initial Migration
+
+The first migration script defines the entire database structure:
+
+```sql
+V1__init_schema.sql
+```
+
+This script includes:
+
+* Database schema creation
+* Table definitions
+* Index creation for performance optimization
+
+Flyway automatically executes this script when the application starts for the first time.
+
+---
+
+### ⚙️ How It Works
+
+* Flyway scans the `db/migration` directory
+* Detects versioned scripts (`V1`, `V2`, etc.)
+* Executes them in order
+* Tracks execution in the `flyway_schema_history` table
+
+---
+
+### 📦 Why Use Flyway?
+
+* Ensures consistent database setup across environments
+* Eliminates manual database changes
+* Provides version control for schema evolution
+
+---
+
+### 💡 Future Improvements
+
+As the project evolves, new migrations will be added instead of modifying the initial script. For example:
+
+```sql
+V2__add_new_column.sql
+V3__create_new_table.sql
+```
+
+This keeps the database history traceable and safe.
+
+---
+
+Flyway acts as the backbone of database consistency, making sure every environment speaks the same structural language.
+
+
 # Resilience
 
 To increase system reliability, the application uses **Resilience4j**.
