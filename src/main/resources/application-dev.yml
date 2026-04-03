@@ -4,10 +4,10 @@ server:
 spring:
 
   datasource:
-    url: jdbc:h2:mem:bookingdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mysql://localhost:3306/booking_db?createDatabaseIfNotExist=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: booking_user
+    password: booking_pass
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}    
@@ -17,8 +17,17 @@ spring:
  
   jpa:
     hibernate:
+    #config para jpa nao criar tabelas automaticamente
       ddl-auto: update
     show-sql: true
+
+  flyway:
+    enabled: true
+    clean-disabled: false
+    locations:
+    - classpath:db/migration
+    - classpath:db/dev
+    - classpath:db/dev/seed
 
   h2:
     console:
