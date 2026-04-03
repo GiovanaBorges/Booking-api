@@ -1,0 +1,22 @@
+[
+  { "username": "ana.silva@test.com", "email": "ana.silva@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "bruno.costa@test.com", "email": "bruno.costa@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "carla.rocha@test.com", "email": "carla.rocha@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "daniel.alves@test.com", "email": "daniel.alves@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "eduarda.melo@test.com", "email": "eduarda.melo@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "felipe.ribeiro@test.com", "email": "felipe.ribeiro@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "gabriela.santos@test.com", "email": "gabriela.santos@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "henrique.lima@test.com", "email": "henrique.lima@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "isabela.teixeira@test.com", "email": "isabela.teixeira@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "joao.pereira@test.com", "email": "joao.pereira@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "karina.gomes@test.com", "email": "karina.gomes@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "lucas.martins@test.com", "email": "lucas.martins@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "mariana.fernandes@test.com", "email": "mariana.fernandes@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "nicolas.barros@test.com", "email": "nicolas.barros@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "olivia.cardoso@test.com", "email": "olivia.cardoso@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "paulo.moreira@test.com", "email": "paulo.moreira@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "rafaela.duarte@test.com", "email": "rafaela.duarte@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "samuel.freitas@test.com", "email": "samuel.freitas@test.com", "password": "123", "group": "providers", "role": "PROVIDER" },
+  { "username": "tatiane.araujo@test.com", "email": "tatiane.araujo@test.com", "password": "123", "group": "clients", "role": "CLIENT" },
+  { "username": "vinicius.batista@test.com", "email": "vinicius.batista@test.com", "password": "123", "group": "providers", "role": "PROVIDER" }
+]

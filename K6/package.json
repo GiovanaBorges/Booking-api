@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "type": "module",
+  "scripts": {
+  "seed:users": "node setup/seed-keycloak.js"
+  }
+}
