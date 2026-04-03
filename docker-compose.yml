@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  booking-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: booking-api
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/booking_db
+      SPRING_DATASOURCE_USERNAME: booking_user
+      SPRING_DATASOURCE_PASSWORD: booking_pass
+      SPRING_REDIS_HOST: redis
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_SECURITY_OAUTH2_RESOURCE_SERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/master
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_LOCATIONS: "classpath:db/migration"
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+      - keycloak
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
