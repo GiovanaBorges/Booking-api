@@ -1,0 +1,26 @@
+{
+  "realm" : "Bookings",
+  "users" : [ {
+    "id" : "cfe57491-ab64-420c-b20b-dcf82cb70f06",
+    "username" : "giovana",
+    "firstName" : "Giovana",
+    "lastName" : "asfasfasf",
+    "email" : "email@email.com",
+    "emailVerified" : false,
+    "createdTimestamp" : 1773262197220,
+    "enabled" : true,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "bcbaa025-6256-49a1-87b3-3b98900faba9",
+      "type" : "password",
+      "createdDate" : 1773262197314,
+      "secretData" : "{\"value\":\"8XAhAUwKR8an62t6x+BnIkQpEv6yMuqKwJfmCxIcfGg=\",\"salt\":\"mtMqqOhnNs30pYK8iPNxKA==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-bookings" ],
+    "notBefore" : 0,
+    "groups" : [ "/users" ]
+  } ]
+}
