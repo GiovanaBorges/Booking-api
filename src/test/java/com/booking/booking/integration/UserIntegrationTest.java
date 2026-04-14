@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,7 +28,6 @@ import com.booking.booking.DTO.responses.UserResponseDTO;
 import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.ENUMS.TechSkillsENUM;
 import com.booking.booking.exceptions.ApiException;
-import com.booking.booking.mappers.UserMapper;
 import com.booking.booking.models.Users;
 import com.booking.booking.repositories.UsersRepository;
 import com.booking.booking.services.KeycloakService;

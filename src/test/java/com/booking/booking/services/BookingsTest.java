@@ -250,6 +250,7 @@ public class BookingsTest {
         
         verify(messageProducerBookings).sendEvent(any());
     } 
+    
     @Test
     void shouldFindBookingById(){
         Users provider = Users.builder()

@@ -3,6 +3,7 @@ package com.booking.booking.services;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
@@ -14,10 +15,8 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -32,7 +31,6 @@ import com.booking.booking.DTO.requests.UserRequestDTO;
 import com.booking.booking.DTO.responses.UserResponseDTO;
 import com.booking.booking.ENUMS.RolesENUM;
 import com.booking.booking.ENUMS.TechSkillsENUM;
-import com.booking.booking.events.usersEvents.UsersCreatedEvent;
 import com.booking.booking.exceptions.ApiException;
 import com.booking.booking.mappers.UserMapper;
 import com.booking.booking.mappers.events.UserEventMapper;
@@ -77,7 +75,7 @@ public class UsersServiceTest {
                 when(jwt.getSubject()).thenReturn("keycloakId123");
                 when(jwt.getClaim("email")).thenReturn("email@email.com");
                 when(jwt.getClaim("preferred_username")).thenReturn("user1");
-                when(jwt.getClaim("account_type")).thenReturn("provider"); 
+                when(jwt.getClaim("account_type")).thenReturn("provider");
 
                 Users existingUser = Users.builder()
                                 .id(1L)
@@ -110,7 +108,7 @@ public class UsersServiceTest {
                 when(jwt.getSubject()).thenReturn("keycloakId123");
                 when(jwt.getClaim("email")).thenReturn("email@email.com");
                 when(jwt.getClaim("preferred_username")).thenReturn("user1");
-                when(jwt.getClaim("account_type")).thenReturn("provider"); 
+                when(jwt.getClaim("account_type")).thenReturn("provider");
 
                 when(repository.findByKeycloakId("keycloakId123"))
                                 .thenReturn(Optional.empty());
@@ -125,13 +123,12 @@ public class UsersServiceTest {
                                         return u;
                                 });
 
-
                 Users response = service.createOrGet(jwt);
 
                 assertEquals(RolesENUM.PROVIDER, response.getRoles());
 
                 verify(repository).save(any());
-                verify(messageProducerUsers,never()).sendEvent(any());
+                verify(messageProducerUsers, never()).sendEvent(any());
 
                 verify(keycloakService).assignGroup("keycloakId123", "providers");
                 verify(keycloakService).assignRoleToUser("keycloakId123", "PROVIDER");
@@ -357,6 +354,57 @@ public class UsersServiceTest {
 
                 verify(mapperUser, never())
                                 .toResponse(any());
+        }
+
+        @Test
+        void shouldReturnUsersBySkill() {
+
+                // ARRANGE
+                Users user1 = Users.builder()
+                                .id(1L)
+                                .name("User Java 1")
+                                .roles(RolesENUM.PROVIDER)
+                                .skills(Set.of(TechSkillsENUM.JAVA, TechSkillsENUM.REACT))
+                                .createdAt(LocalDateTime.now())
+                                .build();
+
+                Users user2 = Users.builder()
+                                .id(2L)
+                                .name("User Java 2")
+                                .roles(RolesENUM.PROVIDER)
+                                .skills(Set.of(TechSkillsENUM.JAVA))
+                                .createdAt(LocalDateTime.now())
+                                .build();
+
+                when(repository.findUsersBySkill(TechSkillsENUM.JAVA))
+                                .thenReturn(List.of(user1, user2));
+
+                // EXECUTE
+                List<UserResponseDTO> response = service.getUsersBySkill(TechSkillsENUM.JAVA);
+
+                // ASSERT
+                assertEquals(2, response.size());
+
+                assertTrue(
+                                response.stream()
+                                                .allMatch(u -> u.skills().contains(TechSkillsENUM.JAVA)));
+
+                verify(repository).findUsersBySkill(TechSkillsENUM.JAVA);
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenNoUsersWithSkill() {
+
+                when(repository.findUsersBySkill(TechSkillsENUM.JAVA))
+                                .thenReturn(Collections.emptyList());
+
+                // EXECUTE
+                List<UserResponseDTO> response = service.getUsersBySkill(TechSkillsENUM.JAVA);
+
+                // ASSERT
+                assertTrue(response.isEmpty());
+
+                verify(repository).findUsersBySkill(TechSkillsENUM.JAVA);
         }
 
 }
