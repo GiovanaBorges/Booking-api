@@ -26,7 +26,7 @@ public class UserResolver {
             throw new ApiException("UNAUTHORIZED", HttpStatus.UNAUTHORIZED);
         }
 
-        String keycloakId = jwt.getSubject(); // 👈 pega o "sub"
+        String keycloakId = jwt.getSubject(); // pega o "sub"
 
         return usersRepository.findByKeycloakId(keycloakId)
             .orElseThrow(() ->
