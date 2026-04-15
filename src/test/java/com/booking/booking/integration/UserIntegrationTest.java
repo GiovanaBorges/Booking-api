@@ -41,7 +41,7 @@ import jakarta.transaction.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class UserIntegrationTest {
+public class UserIntegrationTest extends IntegrationTestBase{
 
     @Autowired
     private UsersServices service;

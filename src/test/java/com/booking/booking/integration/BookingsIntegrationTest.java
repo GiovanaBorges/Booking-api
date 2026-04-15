@@ -39,7 +39,7 @@ import jakarta.transaction.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class BookingsIntegrationTest {
+public class BookingsIntegrationTest extends IntegrationTestBase {
     @Autowired
     private BookingsServices service;
 

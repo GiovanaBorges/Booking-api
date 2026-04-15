@@ -20,12 +20,7 @@ class RabbitMqIntegrationTest {
 
     @Container
     static RabbitMQContainer rabbitMQ =
-        new RabbitMQContainer("rabbitmq:3.12")
-            .withExposedPorts(5672)
-            .waitingFor(
-                Wait.forListeningPort()
-                    .withStartupTimeout(Duration.ofSeconds(180))
-            );
+        new RabbitMQContainer("rabbitmq:3.12-management");
 
     @DynamicPropertySource
     static void rabbitProps(DynamicPropertyRegistry registry) {

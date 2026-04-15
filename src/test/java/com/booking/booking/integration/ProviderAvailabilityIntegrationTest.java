@@ -40,7 +40,7 @@ import jakarta.transaction.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class ProviderAvailabilityIntegrationTest {
+class ProviderAvailabilityIntegrationTest extends IntegrationTestBase{
 
     @Autowired
     private ProviderAvailabilityservices service;
